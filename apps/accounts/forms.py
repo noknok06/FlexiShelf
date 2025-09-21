@@ -1,3 +1,4 @@
+# apps/accounts/forms.py
 """
 ユーザー認証フォーム
 """

@@ -17,6 +17,45 @@ from .models import Shelf, ShelfSegment, ProductPlacement
 from .forms import ShelfForm, ShelfSegmentFormSet, ProductPlacementForm
 from apps.products.models import Product
 
+class ShelfListView(ListView):
+    """棚一覧ビュー"""
+    model = Shelf
+    template_name = 'shelves/list.html'
+    context_object_name = 'shelves'
+    paginate_by = 12
+
+    def get_queryset(self):
+        queryset = Shelf.objects.filter(is_active=True).prefetch_related(
+            'segments',
+            Prefetch('placements', queryset=ProductPlacement.objects.filter(is_active=True))
+        ).annotate(
+            segment_count=Count('segments', filter=Q(segments__is_active=True)),
+            placement_count=Count('placements', filter=Q(placements__is_active=True))
+        ).order_by('name')
+        
+        # 検索フィルタリング
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(location__icontains=search_query)
+            )
+        
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 統計情報
+        context['stats'] = {
+            'total_shelves': Shelf.objects.filter(is_active=True).count(),
+            'total_segments': ShelfSegment.objects.filter(is_active=True).count(),
+            'total_placements': ProductPlacement.objects.filter(is_active=True).count(),
+        }
+        
+        return context
+
+
 @method_decorator(login_required, name='dispatch')
 class ShelfDetailView(DetailView):
     """棚詳細ビュー"""

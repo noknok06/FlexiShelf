@@ -1,0 +1,407 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}プロフィール編集 - FlexiShelf{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">ホーム</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'accounts:profile' %}">プロフィール</a></li>
+        <li class="breadcrumb-item active">編集</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-person-gear"></i> プロフィール編集
+                    </h4>
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> 戻る
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <h6><i class="bi bi-exclamation-triangle"></i> 入力内容に誤りがあります</h6>
+                        <ul class="mb-0">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>
+                                        {% if field != '__all__' %}
+                                            <strong>{{ form|get_item:field.label }}:</strong>
+                                        {% endif %}
+                                        {{ error }}
+                                    </li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <!-- 基本情報セクション -->
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2 mb-3">
+                                <i class="bi bi-person"></i> 基本情報
+                            </h5>
+                        </div>
+                        
+                        <!-- 名前 -->
+                        <div class="col-md-6">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label required">
+                                {{ form.last_name.label }}
+                            </label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.last_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label required">
+                                {{ form.first_name.label }}
+                            </label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.first_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- メールアドレス -->
+                        <div class="col-md-8">
+                            <label for="{{ form.email.id_for_label }}" class="form-label required">
+                                <i class="bi bi-envelope"></i> {{ form.email.label }}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.email.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> ログインに使用するメールアドレスです
+                            </div>
+                        </div>
+                        
+                        <!-- メール認証状況 -->
+                        <div class="col-md-4 d-flex align-items-end">
+                            <div class="w-100">
+                                <label class="form-label">認証状況</label>
+                                <div class="form-control-plaintext">
+                                    {% if user.is_email_verified %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> 認証済み
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning">
+                                            <i class="bi bi-exclamation-triangle"></i> 未認証
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 組織情報セクション -->
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2 mb-3 mt-4">
+                                <i class="bi bi-building"></i> 組織情報
+                            </h5>
+                        </div>
+                        
+                        <!-- 部署 -->
+                        <div class="col-md-6">
+                            <label for="{{ form.department.id_for_label }}" class="form-label">
+                                <i class="bi bi-briefcase"></i> {{ form.department.label }}
+                            </label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.department.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 電話番号 -->
+                        <div class="col-md-6">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                <i class="bi bi-telephone"></i> {{ form.phone.label }}
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.phone.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                例: 03-1234-5678 または 090-1234-5678
+                            </div>
+                        </div>
+                        
+                        <!-- 読み取り専用情報 -->
+                        <div class="col-12">
+                            <h5 class="border-bottom pb-2 mb-3 mt-4">
+                                <i class="bi bi-info-circle"></i> アカウント情報
+                            </h5>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">ユーザー名</label>
+                            <div class="form-control-plaintext bg-light p-2 rounded">
+                                {{ user.username }}
+                            </div>
+                            <div class="form-text">ユーザー名は変更できません</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">役職</label>
+                            <div class="form-control-plaintext bg-light p-2 rounded">
+                                {{ user.get_role_display }}
+                                {% if user.role == 'admin' %}
+                                    <span class="badge bg-danger ms-2">管理者</span>
+                                {% elif user.role == 'manager' %}
+                                    <span class="badge bg-warning ms-2">マネージャー</span>
+                                {% endif %}
+                            </div>
+                            <div class="form-text">役職は管理者のみ変更可能です</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">登録日</label>
+                            <div class="form-control-plaintext bg-light p-2 rounded">
+                                {{ user.date_joined|date:"Y年m月d日 H:i" }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">最終ログイン</label>
+                            <div class="form-control-plaintext bg-light p-2 rounded">
+                                {{ user.last_login|date:"Y年m月d日 H:i"|default:"未記録" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 保存ボタン -->
+                    <div class="row mt-5">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'accounts:profile' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> キャンセル
+                                </a>
+                                <div>
+                                    <button type="submit" class="btn btn-primary btn-lg" id="save-btn">
+                                        <i class="bi bi-check-lg"></i> 変更を保存
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- パスワード変更セクション -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-lock"></i> セキュリティ設定
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>パスワード変更</h6>
+                        <p class="text-muted mb-0">
+                            セキュリティ強化のため、定期的なパスワード変更をお勧めします。
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#passwordChangeModal">
+                            <i class="bi bi-key"></i> パスワード変更
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- パスワード変更モーダル -->
+<div class="modal fade" id="passwordChangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-key"></i> パスワード変更
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>パスワード変更について</strong>
+                </div>
+                <p>セキュリティ上の理由により、パスワードの変更は以下の方法で行ってください：</p>
+                <ul>
+                    <li>管理者にお問い合わせください</li>
+                    <li>ログアウト後、パスワードリセット機能をご利用ください</li>
+                </ul>
+                <p class="text-muted">将来のアップデートで、この画面から直接変更できるようになる予定です。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> 閉じる
+                </button>
+                <a href="{% url 'accounts:logout' %}" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-right"></i> ログアウトしてリセット
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.required::after {
+    content: ' *';
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.form-control-plaintext {
+    font-weight: 500;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+@media (max-width: 768px) {
+    .col-md-4.text-end {
+        text-align: start !important;
+        margin-top: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // フォームのリアルタイムバリデーション
+    const form = document.querySelector('form.needs-validation');
+    const requiredFields = form.querySelectorAll('input[required]');
+    
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', validateField);
+        field.addEventListener('input', clearValidation);
+    });
+    
+    // フォーム送信時の処理
+    form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 最初のエラーフィールドにフォーカス
+            const firstError = form.querySelector('.is-invalid');
+            if (firstError) {
+                firstError.focus();
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        } else {
+            // ローディング表示
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>保存中...';
+            saveBtn.disabled = true;
+        }
+        
+        form.classList.add('was-validated');
+    });
+    
+    // メールアドレスのフォーマットチェック
+    const emailField = document.getElementById('{{ form.email.id_for_label }}');
+    if (emailField) {
+        emailField.addEventListener('blur', function() {
+            const email = this.value.trim();
+            if (email && !isValidEmail(email)) {
+                this.setCustomValidity('正しいメールアドレスの形式で入力してください');
+                this.classList.add('is-invalid');
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+            }
+        });
+    }
+    
+    // 電話番号のフォーマットチェック
+    const phoneField = document.getElementById('{{ form.phone.id_for_label }}');
+    if (phoneField) {
+        phoneField.addEventListener('input', function() {
+            // 数字、ハイフン、括弧、スペースのみ許可
+            this.value = this.value.replace(/[^\d\-\(\)\s]/g, '');
+        });
+    }
+});
+
+function validateField() {
+    if (this.checkValidity()) {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+    } else {
+        this.classList.remove('is-valid');
+        this.classList.add('is-invalid');
+    }
+}
+
+function clearValidation() {
+    this.classList.remove('is-invalid', 'is-valid');
+}
+
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// 変更確認ダイアログ
+let formChanged = false;
+document.querySelectorAll('input, select, textarea').forEach(field => {
+    field.addEventListener('input', function() {
+        formChanged = true;
+    });
+});
+
+window.addEventListener('beforeunload', function(e) {
+    if (formChanged) {
+        const confirmationMessage = '変更が保存されていません。このページを離れますか？';
+        e.returnValue = confirmationMessage;
+        return confirmationMessage;
+    }
+});
+
+// 保存時に確認フラグをリセット
+document.querySelector('form').addEventListener('submit', function() {
+    formChanged = false;
+});
+</script>
+{% endblock %}
