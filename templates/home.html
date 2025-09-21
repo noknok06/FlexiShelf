@@ -17,9 +17,9 @@
                 <button class="btn btn-light btn-lg" disabled>
                     <i class="bi bi-grid"></i> 棚管理（準備中）
                 </button>
-                <button class="btn btn-outline-light btn-lg" disabled>
-                    <i class="bi bi-box"></i> 商品管理（準備中）
-                </button>
+                <a href="{% url 'products:list' %}" class="btn btn-outline-light btn-lg">
+                    <i class="bi bi-box"></i> 商品管理
+                </a>
             </div>
         </div>
     </div>
@@ -46,9 +46,9 @@
                 <i class="bi bi-box display-4 text-success mb-3"></i>
                 <h2 class="card-title">{{ total_products|default:0 }}</h2>
                 <p class="card-text">登録済み商品数</p>
-                <button class="btn btn-success" disabled>
-                    <i class="bi bi-arrow-right"></i> 商品管理へ（準備中）
-                </button>
+                <a href="{% url 'products:list' %}" class="btn btn-success">
+                    <i class="bi bi-arrow-right"></i> 商品管理へ
+                </a>
             </div>
         </div>
     </div>
@@ -123,12 +123,12 @@
                             <strong>アカウント管理</strong> - 完了
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-clock text-warning me-2"></i>
-                            <strong>棚管理</strong> - 開発中
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>商品管理</strong> - 完了
                         </li>
                         <li class="mb-2">
                             <i class="bi bi-clock text-warning me-2"></i>
-                            <strong>商品管理</strong> - 開発中
+                            <strong>棚管理</strong> - 開発中
                         </li>
                         <li class="mb-2">
                             <i class="bi bi-clock text-warning me-2"></i>
@@ -160,11 +160,10 @@
                         </button>
                     </div>
                     <div class="col-md-3">
-                        <button class="btn btn-outline-success btn-lg w-100 mb-2" disabled>
+                        <a href="{% url 'products:create' %}" class="btn btn-outline-success btn-lg w-100 mb-2">
                             <i class="bi bi-box-arrow-in-down d-block mb-2" style="font-size: 2rem;"></i>
-                            商品を登録<br>
-                            <small class="text-muted">（準備中）</small>
-                        </button>
+                            商品を登録
+                        </a>
                     </div>
                     <div class="col-md-3">
                         <a href="{% url 'accounts:profile' %}" class="btn btn-outline-info btn-lg w-100 mb-2">
@@ -202,23 +201,24 @@
                 </h5>
             </div>
             <div class="card-body">
-                <p>FlexiShelfアカウントの作成が完了しました！現在、システムの他の機能を開発中です。</p>
+                <p>FlexiShelfアカウントの作成が完了しました！商品管理機能が利用可能です。引き続き棚割り機能の開発を進めています。</p>
                 <div class="row">
                     <div class="col-md-6">
                         <h6>現在利用可能な機能：</h6>
                         <ul>
                             <li>ユーザー登録・ログイン</li>
                             <li>プロフィール管理</li>
-                            <li>基本的な画面遷移</li>
+                            <li>商品管理（作成・編集・削除）</li>
+                            <li>メーカー・カテゴリ管理</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
                         <h6>開発予定の機能：</h6>
                         <ul>
                             <li>棚の作成・管理</li>
-                            <li>商品マスター管理</li>
                             <li>棚割りシミュレーション</li>
                             <li>レポート出力</li>
+                            <li>提案機能</li>
                         </ul>
                     </div>
                 </div>

@@ -37,8 +37,8 @@ urlpatterns = [
     path('dashboard/', home_view, name='dashboard'),
     path('accounts/', include('apps.accounts.urls')),
     path('products/', include('apps.products.urls')),
-    path('shelves/', include('apps.shelves.urls')),
-    path('proposals/', include('apps.proposals.urls')),
+    # path('shelves/', include('apps.shelves.urls')),
+    # path('proposals/', include('apps.proposals.urls')),
 ]
 
 # Development static/media files serving

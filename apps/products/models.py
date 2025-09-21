@@ -147,7 +147,13 @@ class Product(BaseModel):
         """体積（cm³）"""
         return self.width * self.height * self.depth
 
+    @property
+    def recommended_width(self):
+        """推奨幅（cm）"""
+        return self.width * self.recommended_faces
+
     def clean(self):
+
         """モデルレベルのバリデーション"""
         from django.core.exceptions import ValidationError
         
