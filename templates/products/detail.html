@@ -1,0 +1,386 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} - 商品詳細 - FlexiShelf{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">ホーム</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'products:list' %}">商品管理</a></li>
+        <li class="breadcrumb-item active">{{ product.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>
+            {% if product.is_own_product %}
+                <i class="bi bi-box text-success"></i>
+            {% else %}
+                <i class="bi bi-box text-warning"></i>
+            {% endif %}
+            {{ product.name }}
+        </h1>
+        <p class="text-muted mb-0">{{ product.manufacturer.name }} / {{ product.category.name }}</p>
+    </div>
+    
+    <div class="btn-group" role="group">
+        <a href="{% url 'products:update' product.pk %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> 編集
+        </a>
+        <a href="{% url 'products:delete' product.pk %}" 
+           class="btn btn-outline-danger"
+           data-confirm-delete="商品「{{ product.name }}」を削除しますか？">
+            <i class="bi bi-trash"></i> 削除
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 左カラム: 商品情報 -->
+    <div class="col-lg-8">
+        <!-- 基本情報 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> 基本情報
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" 
+                                 class="img-fluid rounded mb-3" 
+                                 alt="{{ product.name }}"
+                                 style="max-height: 300px; width: 100%; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center mb-3" 
+                                 style="height: 300px;">
+                                <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="120">商品名:</th>
+                                <td>{{ product.name }}</td>
+                            </tr>
+                            {% if product.jan_code %}
+                            <tr>
+                                <th>JANコード:</th>
+                                <td><code>{{ product.jan_code }}</code></td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th>メーカー:</th>
+                                <td>
+                                    {{ product.manufacturer.name }}
+                                    {% if product.is_own_product %}
+                                        <span class="badge badge-own ms-2">自社</span>
+                                    {% else %}
+                                        <span class="badge badge-competitor ms-2">競合</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>カテゴリ:</th>
+                                <td>{{ product.category.name }}</td>
+                            </tr>
+                            {% if product.size_category %}
+                            <tr>
+                                <th>サイズ区分:</th>
+                                <td>{{ product.get_size_category_display }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if product.price %}
+                            <tr>
+                                <th>価格:</th>
+                                <td>¥{{ product.price|floatformat:0 }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+                {% if product.description %}
+                <div class="mt-3">
+                    <h6>商品説明</h6>
+                    <p class="text-muted">{{ product.description|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 物理特性 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-rulers"></i> 物理特性
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-1">{{ product.width }}</h5>
+                            <small class="text-muted">幅 (cm)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-1">{{ product.height }}</h5>
+                            <small class="text-muted">高さ (cm)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-1">{{ product.depth }}</h5>
+                            <small class="text-muted">奥行 (cm)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h5 class="mb-1">{{ product.volume|floatformat:1 }}</h5>
+                            <small class="text-muted">体積 (cm³)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- フェーシング設定 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-grid-3x3"></i> フェーシング設定
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="text-center p-3 border rounded">
+                            <h5 class="mb-1 text-danger">{{ product.min_faces }}</h5>
+                            <small class="text-muted">最小フェース数</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 border rounded">
+                            <h5 class="mb-1 text-primary">{{ product.recommended_faces }}</h5>
+                            <small class="text-muted">推奨フェース数</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 border rounded">
+                            <h5 class="mb-1 text-success">{{ product.max_faces }}</h5>
+                            <small class="text-muted">最大フェース数</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">推奨幅:</span>
+                        <span class="badge bg-primary">{{ product.width|floatformat:1 }}cm × {{ product.recommended_faces }} = {{ product.width|mul:product.recommended_faces|floatformat:1 }}cm</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右カラム: 配置情報・統計 -->
+    <div class="col-lg-4">
+        <!-- 配置統計 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> 配置統計
+            </div>
+            <div class="card-body">
+                {% if placement_count > 0 %}
+                    <div class="row g-3 text-center">
+                        <div class="col-6">
+                            <div class="p-2">
+                                <h5 class="mb-1">{{ placement_count }}</h5>
+                                <small class="text-muted">配置箇所</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2">
+                                <h5 class="mb-1">{{ placement_stats.shelf_count }}</h5>
+                                <small class="text-muted">配置棚数</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2">
+                                <h5 class="mb-1">{{ placement_stats.total_faces }}</h5>
+                                <small class="text-muted">総フェース数</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2">
+                                <h5 class="mb-1">{{ placement_stats.avg_faces|floatformat:1 }}</h5>
+                                <small class="text-muted">平均フェース数</small>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mt-2 mb-0">配置されていません</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 配置一覧 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-grid"></i> 配置一覧
+            </div>
+            <div class="card-body">
+                {% if placements %}
+                    <div class="list-group list-group-flush">
+                        {% for placement in placements %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ placement.shelf.name }}</h6>
+                                    <p class="mb-1">段{{ placement.segment.level }}</p>
+                                    <small class="text-muted">
+                                        位置: {{ placement.x_position }}cm〜{{ placement.end_position }}cm
+                                    </small>
+                                </div>
+                                <span class="badge badge-face">{{ placement.face_count }}面</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mt-3 text-center">
+                        <a href="{% url 'shelves:list' %}?product={{ product.pk }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-eye"></i> 配置詳細を見る
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-plus-circle" style="font-size: 2rem;"></i>
+                        <p class="mt-2 mb-2">まだ配置されていません</p>
+                        <a href="{% url 'shelves:list' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-plus"></i> 棚に配置する
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- フェーシング計算ツール -->
+<div class="modal fade" id="facingCalculatorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">フェーシング計算ツール</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="availableWidth" class="form-label">利用可能幅 (cm)</label>
+                    <input type="number" class="form-control" id="availableWidth" 
+                           placeholder="幅を入力" step="0.1" min="0">
+                </div>
+                <div id="calculationResult" class="d-none">
+                    <h6>計算結果</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>最大可能フェース数:</th>
+                                <td id="maxPossible">-</td>
+                            </tr>
+                            <tr>
+                                <th>推奨フェース数:</th>
+                                <td id="optimal">-</td>
+                            </tr>
+                            <tr>
+                                <th>必要幅:</th>
+                                <td id="requiredWidth">-</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                <button type="button" class="btn btn-primary" id="calculateFacing">計算</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// フェーシング計算機能
+document.getElementById('calculateFacing').addEventListener('click', function() {
+    const width = document.getElementById('availableWidth').value;
+    if (!width || width <= 0) {
+        alert('有効な幅を入力してください');
+        return;
+    }
+    
+    fetch(`{% url 'products:facing_suggestion' product.pk %}?width=${width}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            
+            document.getElementById('maxPossible').textContent = data.max_possible + '面';
+            document.getElementById('optimal').textContent = data.optimal + '面';
+            document.getElementById('requiredWidth').textContent = data.required_width.toFixed(1) + 'cm';
+            document.getElementById('calculationResult').classList.remove('d-none');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('計算中にエラーが発生しました');
+        });
+});
+
+// フローティングアクションボタンの追加
+window.addEventListener('scroll', function() {
+    const fab = document.getElementById('floating-action-btn');
+    if (window.scrollY > 300) {
+        fab?.classList.add('show');
+    } else {
+        fab?.classList.remove('show');
+    }
+});
+</script>
+
+<style>
+.floating-action-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.floating-action-btn.show {
+    opacity: 1;
+    visibility: visible;
+}
+</style>
+
+<!-- フローティングアクションボタン -->
+<button class="btn btn-primary floating-action-btn" id="floating-action-btn" 
+        data-bs-toggle="modal" data-bs-target="#facingCalculatorModal"
+        title="フェーシング計算">
+    <i class="bi bi-calculator"></i>
+</button>
+{% endblock %}

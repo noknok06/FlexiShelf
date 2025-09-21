@@ -1,0 +1,29 @@
+<!-- templates/base/components/stats_cards.html -->
+<div class="row mb-4">
+    {% for stat in stats %}
+    <div class="col-md-{{ stat.col_size|default:'3' }}">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                {% if stat.icon %}
+                    <i class="bi bi-{{ stat.icon }} display-6 text-{{ stat.color|default:'primary' }} mb-3"></i>
+                {% endif %}
+                <h3 class="card-title text-{{ stat.color|default:'primary' }}">{{ stat.value }}</h3>
+                <p class="card-text">{{ stat.label }}</p>
+                {% if stat.trend %}
+                    <small class="text-{{ stat.trend_color|default:'muted' }}">
+                        <i class="bi bi-{% if stat.trend > 0 %}arrow-up{% elif stat.trend < 0 %}arrow-down{% else %}dash{% endif %}"></i>
+                        {{ stat.trend_text|default:stat.trend }}
+                    </small>
+                {% endif %}
+            </div>
+            {% if stat.action_url %}
+                <div class="card-footer">
+                    <a href="{{ stat.action_url }}" class="btn btn-outline-{{ stat.color|default:'primary' }} btn-sm">
+                        {{ stat.action_text|default:'詳細を見る' }}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>

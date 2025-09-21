@@ -1,0 +1,1032 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ shelf.name }} - 棚割り編集 - FlexiShelf{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">ホーム</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'shelves:list' %}">棚管理</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'shelves:detail' shelf.pk %}">{{ shelf.name }}</a></li>
+        <li class="breadcrumb-item active">棚割り編集</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- ツールバー -->
+<div class="shelf-toolbar">
+    <div class="toolbar-group">
+        <h4 class="mb-0">
+            <i class="bi bi-pencil-square"></i> {{ shelf.name }} - 棚割り編集
+        </h4>
+        <span class="text-muted">{{ shelf.width }}×{{ shelf.depth }}cm</span>
+    </div>
+    
+    <div class="toolbar-group">
+        <div class="zoom-control">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="zoomOut()">
+                <i class="bi bi-zoom-out"></i>
+            </button>
+            <input type="range" class="zoom-slider" id="zoom-slider" 
+                   min="0.5" max="3" step="0.1" value="1">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="zoomIn()">
+                <i class="bi bi-zoom-in"></i>
+            </button>
+            <span class="zoom-level" id="zoom-level">100%</span>
+        </div>
+        
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary" onclick="toggleGrid()" title="グリッド表示">
+                <i class="bi bi-grid"></i>
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="toggleSnapToGrid()" 
+                    title="グリッドスナップ" id="snap-btn">
+                <i class="bi bi-magnet"></i>
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="autoArrange()" title="自動配置">
+                <i class="bi bi-magic"></i>
+            </button>
+        </div>
+        
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-success" onclick="saveLayout()" title="保存">
+                <i class="bi bi-check-lg"></i> 保存
+            </button>
+            <a href="{% url 'shelves:detail' shelf.pk %}" class="btn btn-outline-secondary" title="戻る">
+                <i class="bi bi-arrow-left"></i> 戻る
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 左パネル: 商品パレット -->
+    <div class="col-lg-3">
+        <div class="product-palette">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-box"></i> 商品パレット</span>
+                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#productSearchModal">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- 検索フィルタ -->
+                    <div class="p-3 border-bottom">
+                        <input type="text" class="form-control form-control-sm" id="product-filter" 
+                               placeholder="商品名で絞り込み" autocomplete="off">
+                        <div class="mt-2">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="product-type" id="all-products" checked>
+                                <label class="btn btn-outline-secondary btn-sm" for="all-products">全て</label>
+                                
+                                <input type="radio" class="btn-check" name="product-type" id="own-products">
+                                <label class="btn btn-outline-success btn-sm" for="own-products">自社</label>
+                                
+                                <input type="radio" class="btn-check" name="product-type" id="competitor-products">
+                                <label class="btn btn-outline-warning btn-sm" for="competitor-products">競合</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 商品一覧 -->
+                    <div class="product-list" id="product-list">
+                        {% for product in products %}
+                        <div class="product-item" 
+                             data-product-id="{{ product.id }}"
+                             data-product-name="{{ product.name }}"
+                             data-manufacturer="{{ product.manufacturer.name }}"
+                             data-width="{{ product.width }}"
+                             data-height="{{ product.height }}"
+                             data-depth="{{ product.depth }}"
+                             data-min-faces="{{ product.min_faces }}"
+                             data-max-faces="{{ product.max_faces }}"
+                             data-recommended-faces="{{ product.recommended_faces }}"
+                             data-is-own="{{ product.is_own_product|yesno:'true,false' }}"
+                             data-image-url="{% if product.image %}{{ product.image.url }}{% endif %}"
+                             draggable="true">
+                            
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" class="product-thumb" alt="{{ product.name }}">
+                            {% else %}
+                                <div class="product-thumb bg-light d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-image text-muted"></i>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="product-info">
+                                <h6>{{ product.name|truncatechars:30 }}</h6>
+                                <small class="text-muted">{{ product.manufacturer.name }}</small>
+                                <div class="product-dimensions">
+                                    {{ product.width }}×{{ product.height }}×{{ product.depth }}cm
+                                </div>
+                                <div class="mt-1">
+                                    {% if product.is_own_product %}
+                                        <span class="badge badge-own">自社</span>
+                                    {% else %}
+                                        <span class="badge badge-competitor">競合</span>
+                                    {% endif %}
+                                    <span class="badge bg-secondary">{{ product.min_faces }}-{{ product.max_faces }}面</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 中央: 棚キャンバス -->
+    <div class="col-lg-6">
+        <div class="main-canvas">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>棚レイアウト</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary" onclick="clearAllPlacements()" title="全クリア">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            <button class="btn btn-outline-info" onclick="undoLastAction()" title="元に戻す">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-2">
+                    <div class="shelf-canvas" id="shelf-canvas" 
+                         style="width: {{ shelf.width }}px; height: {{ shelf.total_height }}px;"
+                         data-shelf-id="{{ shelf.pk }}"
+                         data-shelf-width="{{ shelf.width }}"
+                         data-shelf-depth="{{ shelf.depth }}">
+                        
+                        <div class="shelf-dimensions">{{ shelf.width }}cm</div>
+                        
+                        {% for segment_data in segments_json %}
+                        <div class="segment" 
+                             data-segment-id="{{ segment_data.id }}"
+                             data-level="{{ segment_data.level }}"
+                             data-height="{{ segment_data.height }}"
+                             data-available-width="{{ segment_data.available_width }}"
+                             style="height: {{ segment_data.height }}px; 
+                                    top: {{ segment_data.y_position }}px;">
+                            
+                            <div class="segment-label">段{{ segment_data.level }}</div>
+                            
+                            <!-- 既存の配置 -->
+                            {% for placement in segment_data.placements %}
+                            <div class="placement {% if placement.is_own %}own-product{% else %}competitor-product{% endif %}" 
+                                 data-placement-id="{{ placement.id }}"
+                                 data-product-id="{{ placement.product_id }}"
+                                 data-x-position="{{ placement.x_position }}"
+                                 data-face-count="{{ placement.face_count }}"
+                                 data-occupied-width="{{ placement.occupied_width }}"
+                                 data-product-width="{{ placement.product_width }}"
+                                 data-product-height="{{ placement.product_height }}"
+                                 style="left: {{ placement.x_position }}px; 
+                                        width: {{ placement.occupied_width }}px; 
+                                        height: {{ placement.product_height }}px;
+                                        top: {{ segment_data.height|add:placement.product_height|mul:-1|add:2 }}px;">
+                                
+                                {% if placement.product_image %}
+                                    <img src="{{ placement.product_image }}" class="product-image" alt="{{ placement.product_name }}">
+                                {% endif %}
+                                
+                                <div class="product-name" title="{{ placement.product_name }}">
+                                    {{ placement.product_name|truncatechars:15 }}
+                                </div>
+                                <div class="manufacturer-name">
+                                    {{ placement.manufacturer_name|truncatechars:10 }}
+                                </div>
+                                
+                                {% if placement.face_count > 1 %}
+                                    <div class="face-badge">{{ placement.face_count }}</div>
+                                {% endif %}
+                                
+                                <!-- リサイズハンドル -->
+                                <div class="resize-handle"></div>
+                            </div>
+                            {% endfor %}
+                            
+                            <div class="segment-info">
+                                <span class="available-width">{{ segment_data.available_width|floatformat:1 }}cm空き</span>
+                            </div>
+                            
+                            <!-- 段の高さ調整ハンドル -->
+                            <div class="segment-resize-handle" data-segment-id="{{ segment_data.id }}"></div>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- ドロップゾーン表示用 -->
+                        <div class="drop-zone-indicator" id="drop-zone-indicator" style="display: none;"></div>
+                        <div class="placement-ghost" id="placement-ghost" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右パネル: 段管理・統計 -->
+    <div class="col-lg-3">
+        <div class="control-panel">
+            <!-- 段高さ調整 -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-rulers"></i> 段高さ調整
+                </div>
+                <div class="card-body">
+                    {% for segment_data in segments_json %}
+                    <div class="segment-control" data-segment-id="{{ segment_data.id }}">
+                        <label>段{{ segment_data.level }}:</label>
+                        <input type="range" class="height-slider" 
+                               min="10" max="60" value="{{ segment_data.height }}"
+                               data-segment-id="{{ segment_data.id }}">
+                        <input type="number" class="height-input" 
+                               min="10" max="60" value="{{ segment_data.height }}"
+                               data-segment-id="{{ segment_data.id }}">
+                        <span class="unit">cm</span>
+                    </div>
+                    {% endfor %}
+                    
+                    <button class="btn btn-primary btn-sm w-100 mt-2" onclick="applyHeightChanges()">
+                        <i class="bi bi-check"></i> 高さ変更を適用
+                    </button>
+                </div>
+            </div>
+
+            <!-- 配置統計 -->
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> 配置統計
+                </div>
+                <div class="card-body">
+                    <div class="placement-stats" id="placement-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">配置商品数:</span>
+                            <span class="stat-value" id="total-placements">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">総フェース数:</span>
+                            <span class="stat-value" id="total-faces">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">自社商品:</span>
+                            <span class="stat-value" id="own-products-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">競合商品:</span>
+                            <span class="stat-value" id="competitor-products-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">平均利用率:</span>
+                            <span class="stat-value" id="avg-utilization">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 選択された商品情報 -->
+            <div class="card" id="selected-product-panel" style="display: none;">
+                <div class="card-header">
+                    <i class="bi bi-info-circle"></i> 選択中
+                </div>
+                <div class="card-body">
+                    <div id="selected-product-info">
+                        <!-- 選択された配置の詳細がここに表示される -->
+                    </div>
+                    
+                    <div class="mt-3">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label form-label-sm">X座標</label>
+                                <input type="number" class="form-control form-control-sm" 
+                                       id="edit-x-position" step="0.1" min="0">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label form-label-sm">フェース数</label>
+                                <input type="number" class="form-control form-control-sm" 
+                                       id="edit-face-count" min="1">
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 mt-3">
+                            <button class="btn btn-primary btn-sm" onclick="updateSelectedPlacement()">
+                                <i class="bi bi-check"></i> 更新
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteSelectedPlacement()">
+                                <i class="bi bi-trash"></i> 削除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- フェース数設定モーダル -->
+<div class="modal fade" id="facingModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">フェース数設定</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">フェース数</label>
+                    <input type="range" class="form-range" id="facing-range" min="1" max="10" value="1">
+                    <div class="d-flex justify-content-between">
+                        <small>1</small>
+                        <strong id="facing-value">1</strong>
+                        <small id="facing-max">10</small>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <small>
+                        占有幅: <span id="occupied-width-preview">-</span>cm<br>
+                        利用可能幅: <span id="available-width-preview">-</span>cm
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" id="apply-facing">適用</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 商品検索モーダル -->
+<div class="modal fade" id="productSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">商品検索</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control" id="advanced-product-search" 
+                       placeholder="商品名、JANコード、メーカー名で検索">
+                <div id="search-results" class="mt-3" style="max-height: 400px; overflow-y: auto;">
+                    <!-- 検索結果がここに表示される -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/shelf-layout.css' %}" rel="stylesheet">
+<style>
+.form-label-sm {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.resize-handle {
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: transparent;
+    cursor: ew-resize;
+    z-index: 10;
+}
+
+.resize-handle:hover {
+    background: #0d6efd;
+}
+
+.placement.selected .resize-handle {
+    background: #0d6efd;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/shelf/placement-engine.js' %}"></script>
+<script src="{% static 'js/shelf/segment-manager.js' %}"></script>
+
+<script>
+// グローバル変数
+let currentZoom = 1;
+let selectedPlacement = null;
+let draggedProduct = null;
+let snapToGrid = true;
+let undoStack = [];
+
+// 棚データ
+const shelfData = {
+    id: {{ shelf.pk }},
+    width: {{ shelf.width }},
+    depth: {{ shelf.depth }},
+    segments: {{ segments_json|safe }}
+};
+
+// 初期化
+document.addEventListener('DOMContentLoaded', function() {
+    initializePlacementEngine();
+    initializeEventListeners();
+    updateStatistics();
+    
+    // ズームスライダーの初期化
+    const zoomSlider = document.getElementById('zoom-slider');
+    zoomSlider.addEventListener('input', function() {
+        currentZoom = parseFloat(this.value);
+        updateZoom();
+    });
+});
+
+// イベントリスナーの初期化
+function initializePlacementEngine() {
+    const canvas = document.getElementById('shelf-canvas');
+    
+    // ドロップイベント
+    canvas.addEventListener('dragover', handleDragOver);
+    canvas.addEventListener('drop', handleDrop);
+    
+    // 配置クリックイベント
+    canvas.addEventListener('click', function(e) {
+        if (e.target.classList.contains('placement')) {
+            selectPlacement(e.target);
+        } else {
+            deselectPlacement();
+        }
+    });
+}
+
+function initializeEventListeners() {
+    // 商品パレットのドラッグイベント
+    document.querySelectorAll('.product-item').forEach(item => {
+        item.addEventListener('dragstart', handleProductDragStart);
+    });
+    
+    // 商品フィルタ
+    document.getElementById('product-filter').addEventListener('input', filterProducts);
+    
+    // 商品タイプフィルタ
+    document.querySelectorAll('input[name="product-type"]').forEach(radio => {
+        radio.addEventListener('change', filterProducts);
+    });
+    
+    // 段高さ調整
+    document.querySelectorAll('.height-slider, .height-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const segmentId = this.dataset.segmentId;
+            const value = this.value;
+            
+            // スライダーと入力フィールドを同期
+            const controls = document.querySelectorAll(`[data-segment-id="${segmentId}"]`);
+            controls.forEach(control => {
+                if (control !== this) {
+                    control.value = value;
+                }
+            });
+            
+            // プレビュー更新
+            updateSegmentHeightPreview(segmentId, value);
+        });
+    });
+}
+
+// 商品ドラッグ開始
+function handleProductDragStart(e) {
+    draggedProduct = {
+        id: this.dataset.productId,
+        name: this.dataset.productName,
+        manufacturer: this.dataset.manufacturer,
+        width: parseFloat(this.dataset.width),
+        height: parseFloat(this.dataset.height),
+        depth: parseFloat(this.dataset.depth),
+        minFaces: parseInt(this.dataset.minFaces),
+        maxFaces: parseInt(this.dataset.maxFaces),
+        recommendedFaces: parseInt(this.dataset.recommendedFaces),
+        isOwn: this.dataset.isOwn === 'true',
+        imageUrl: this.dataset.imageUrl
+    };
+    
+    this.classList.add('dragging');
+    
+    // ドラッグ終了時のクリーンアップ
+    setTimeout(() => {
+        this.classList.remove('dragging');
+    }, 100);
+}
+
+// ドラッグオーバー処理
+function handleDragOver(e) {
+    e.preventDefault();
+    
+    if (!draggedProduct) return;
+    
+    const segment = e.target.closest('.segment');
+    if (!segment) return;
+    
+    // 配置可能性チェック
+    const segmentId = segment.dataset.segmentId;
+    const segmentHeight = parseFloat(segment.dataset.height);
+    
+    if (draggedProduct.height <= segmentHeight) {
+        segment.classList.add('drop-target');
+        showDropZone(e, segment);
+    } else {
+        segment.classList.add('drop-invalid');
+    }
+    
+    // 他の段からハイライトを削除
+    document.querySelectorAll('.segment').forEach(seg => {
+        if (seg !== segment) {
+            seg.classList.remove('drop-target', 'drop-invalid');
+        }
+    });
+}
+
+// ドロップ処理
+function handleDrop(e) {
+    e.preventDefault();
+    
+    if (!draggedProduct) return;
+    
+    const segment = e.target.closest('.segment');
+    if (!segment || segment.classList.contains('drop-invalid')) {
+        hideDropZone();
+        clearSegmentHighlights();
+        return;
+    }
+    
+    // ドロップ位置の計算
+    const rect = segment.getBoundingClientRect();
+    const canvasRect = document.getElementById('shelf-canvas').getBoundingClientRect();
+    const xPosition = (e.clientX - rect.left) / currentZoom;
+    
+    // フェース数設定モーダルを表示
+    showFacingModal(segment, xPosition);
+    
+    hideDropZone();
+    clearSegmentHighlights();
+}
+
+// フェース数設定モーダル表示
+function showFacingModal(segment, xPosition) {
+    const modal = new bootstrap.Modal(document.getElementById('facingModal'));
+    const facingRange = document.getElementById('facing-range');
+    const facingValue = document.getElementById('facing-value');
+    const facingMax = document.getElementById('facing-max');
+    const availableWidth = parseFloat(segment.dataset.availableWidth);
+    
+    // 最大フェース数を計算
+    const maxPossible = Math.floor(availableWidth / draggedProduct.width);
+    const maxFaces = Math.min(draggedProduct.maxFaces, maxPossible);
+    
+    facingRange.min = draggedProduct.minFaces;
+    facingRange.max = maxFaces;
+    facingRange.value = Math.min(draggedProduct.recommendedFaces, maxFaces);
+    facingMax.textContent = maxFaces;
+    facingValue.textContent = facingRange.value;
+    
+    // プレビュー更新
+    updateFacingPreview();
+    
+    facingRange.addEventListener('input', function() {
+        facingValue.textContent = this.value;
+        updateFacingPreview();
+    });
+    
+    // 適用ボタンのイベント
+    document.getElementById('apply-facing').onclick = function() {
+        createPlacement(segment, xPosition, parseInt(facingRange.value));
+        modal.hide();
+    };
+    
+    modal.show();
+}
+
+// フェーシングプレビュー更新
+function updateFacingPreview() {
+    const faceCount = parseInt(document.getElementById('facing-range').value);
+    const occupiedWidth = draggedProduct.width * faceCount;
+    
+    document.getElementById('occupied-width-preview').textContent = occupiedWidth.toFixed(1);
+    document.getElementById('available-width-preview').textContent = 
+        parseFloat(document.querySelector('.segment.drop-target')?.dataset.availableWidth || 0).toFixed(1);
+}
+
+// 配置作成
+function createPlacement(segment, xPosition, faceCount) {
+    const segmentId = segment.dataset.segmentId;
+    
+    // スナップトゥグリッド
+    if (snapToGrid) {
+        xPosition = Math.round(xPosition / 5) * 5;
+    }
+    
+    const formData = new FormData();
+    formData.append('shelf_id', shelfData.id);
+    formData.append('segment_id', segmentId);
+    formData.append('product_id', draggedProduct.id);
+    formData.append('x_position', xPosition);
+    formData.append('face_count', faceCount);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch('{% url "shelves:placement_create_api" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 成功時は配置を画面に追加
+            addPlacementToCanvas(segment, data.placement, draggedProduct);
+            updateStatistics();
+            saveToUndoStack();
+            FlexiShelf.showToast('商品を配置しました', 'success');
+        } else {
+            FlexiShelf.showToast('配置に失敗しました: ' + (data.errors.join(', ') || '不明なエラー'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        FlexiShelf.showToast('エラーが発生しました', 'error');
+    });
+}
+
+// キャンバスに配置を追加
+function addPlacementToCanvas(segment, placementData, productData) {
+    const placementDiv = document.createElement('div');
+    placementDiv.className = `placement ${productData.isOwn ? 'own-product' : 'competitor-product'} placement-enter`;
+    placementDiv.dataset.placementId = placementData.id;
+    placementDiv.dataset.productId = productData.id;
+    placementDiv.dataset.xPosition = placementData.x_position;
+    placementDiv.dataset.faceCount = placementData.face_count;
+    placementDiv.dataset.occupiedWidth = placementData.occupied_width;
+    placementDiv.dataset.productWidth = productData.width;
+    placementDiv.dataset.productHeight = productData.height;
+    
+    placementDiv.style.left = placementData.x_position + 'px';
+    placementDiv.style.width = placementData.occupied_width + 'px';
+    placementDiv.style.height = productData.height + 'px';
+    placementDiv.style.top = (parseFloat(segment.dataset.height) - productData.height + 2) + 'px';
+    
+    // 商品情報を表示
+    if (productData.imageUrl) {
+        const img = document.createElement('img');
+        img.src = productData.imageUrl;
+        img.className = 'product-image';
+        placementDiv.appendChild(img);
+    }
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'product-name';
+    nameDiv.textContent = productData.name.substring(0, 15);
+    nameDiv.title = productData.name;
+    placementDiv.appendChild(nameDiv);
+    
+    const manufacturerDiv = document.createElement('div');
+    manufacturerDiv.className = 'manufacturer-name';
+    manufacturerDiv.textContent = productData.manufacturer.substring(0, 10);
+    placementDiv.appendChild(manufacturerDiv);
+    
+    if (placementData.face_count > 1) {
+        const faceBadge = document.createElement('div');
+        faceBadge.className = 'face-badge';
+        faceBadge.textContent = placementData.face_count;
+        placementDiv.appendChild(faceBadge);
+    }
+    
+    // リサイズハンドル
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'resize-handle';
+    placementDiv.appendChild(resizeHandle);
+    
+    // イベントリスナー
+    placementDiv.addEventListener('click', () => selectPlacement(placementDiv));
+    
+    segment.appendChild(placementDiv);
+    
+    // 段の利用可能幅を更新
+    updateSegmentInfo(segment);
+}
+
+// 統計情報の更新
+function updateStatistics() {
+    const placements = document.querySelectorAll('.placement');
+    let totalPlacements = placements.length;
+    let totalFaces = 0;
+    let ownProducts = 0;
+    let competitorProducts = 0;
+    let totalUtilization = 0;
+    
+    placements.forEach(placement => {
+        totalFaces += parseInt(placement.dataset.faceCount || 1);
+        if (placement.classList.contains('own-product')) {
+            ownProducts++;
+        } else {
+            competitorProducts++;
+        }
+    });
+    
+    // 利用率計算
+    const segments = document.querySelectorAll('.segment');
+    segments.forEach(segment => {
+        const segmentPlacements = segment.querySelectorAll('.placement');
+        let usedWidth = 0;
+        segmentPlacements.forEach(p => {
+            usedWidth += parseFloat(p.dataset.occupiedWidth || 0);
+        });
+        totalUtilization += (usedWidth / shelfData.width) * 100;
+    });
+    
+    const avgUtilization = segments.length > 0 ? totalUtilization / segments.length : 0;
+    
+    document.getElementById('total-placements').textContent = totalPlacements;
+    document.getElementById('total-faces').textContent = totalFaces;
+    document.getElementById('own-products-count').textContent = ownProducts;
+    document.getElementById('competitor-products-count').textContent = competitorProducts;
+    document.getElementById('avg-utilization').textContent = avgUtilization.toFixed(1) + '%';
+}
+
+// 段情報の更新
+function updateSegmentInfo(segment) {
+    const placements = segment.querySelectorAll('.placement');
+    let usedWidth = 0;
+    placements.forEach(placement => {
+        usedWidth += parseFloat(placement.dataset.occupiedWidth || 0);
+    });
+    
+    const availableWidth = shelfData.width - usedWidth;
+    segment.dataset.availableWidth = availableWidth;
+    
+    const infoDiv = segment.querySelector('.segment-info .available-width');
+    if (infoDiv) {
+        infoDiv.textContent = availableWidth.toFixed(1) + 'cm空き';
+    }
+}
+
+// 商品フィルタリング
+function filterProducts() {
+    const filterText = document.getElementById('product-filter').value.toLowerCase();
+    const typeFilter = document.querySelector('input[name="product-type"]:checked').id;
+    
+    document.querySelectorAll('.product-item').forEach(item => {
+        const name = item.dataset.productName.toLowerCase();
+        const manufacturer = item.dataset.manufacturer.toLowerCase();
+        const isOwn = item.dataset.isOwn === 'true';
+        
+        const textMatch = !filterText || name.includes(filterText) || manufacturer.includes(filterText);
+        let typeMatch = true;
+        
+        if (typeFilter === 'own-products') {
+            typeMatch = isOwn;
+        } else if (typeFilter === 'competitor-products') {
+            typeMatch = !isOwn;
+        }
+        
+        item.style.display = textMatch && typeMatch ? 'flex' : 'none';
+    });
+}
+
+// ズーム制御
+function zoomIn() {
+    currentZoom = Math.min(currentZoom * 1.2, 3);
+    document.getElementById('zoom-slider').value = currentZoom;
+    updateZoom();
+}
+
+function zoomOut() {
+    currentZoom = Math.max(currentZoom / 1.2, 0.5);
+    document.getElementById('zoom-slider').value = currentZoom;
+    updateZoom();
+}
+
+function updateZoom() {
+    const canvas = document.getElementById('shelf-canvas');
+    canvas.style.transform = `scale(${currentZoom})`;
+    document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+}
+
+// その他のユーティリティ関数
+function toggleGrid() {
+    document.getElementById('shelf-canvas').classList.toggle('show-grid');
+}
+
+function toggleSnapToGrid() {
+    snapToGrid = !snapToGrid;
+    const btn = document.getElementById('snap-btn');
+    btn.classList.toggle('btn-outline-secondary', !snapToGrid);
+    btn.classList.toggle('btn-secondary', snapToGrid);
+}
+
+function saveLayout() {
+    // 保存処理は既に自動で行われているため、成功メッセージのみ表示
+    FlexiShelf.showToast('レイアウトを保存しました', 'success');
+}
+
+function autoArrange() {
+    FlexiShelf.showToast('自動配置機能は開発中です', 'info');
+}
+
+function clearAllPlacements() {
+    if (confirm('すべての配置をクリアしますか？この操作は取り消せません。')) {
+        // 実装予定
+        FlexiShelf.showToast('一括クリア機能は開発中です', 'info');
+    }
+}
+
+function undoLastAction() {
+    if (undoStack.length > 0) {
+        // 実装予定
+        FlexiShelf.showToast('元に戻す機能は開発中です', 'info');
+    }
+}
+
+function saveToUndoStack() {
+    // 実装予定：現在の状態をスタックに保存
+}
+
+// ユーティリティ関数
+function showDropZone(e, segment) {
+    // ドロップゾーン表示の実装
+}
+
+function hideDropZone() {
+    const indicator = document.getElementById('drop-zone-indicator');
+    indicator.style.display = 'none';
+}
+
+function clearSegmentHighlights() {
+    document.querySelectorAll('.segment').forEach(seg => {
+        seg.classList.remove('drop-target', 'drop-invalid');
+    });
+}
+
+function selectPlacement(placementElement) {
+    // 既存の選択を解除
+    document.querySelectorAll('.placement.selected').forEach(p => {
+        p.classList.remove('selected');
+    });
+    
+    // 新しい選択
+    placementElement.classList.add('selected');
+    selectedPlacement = placementElement;
+    
+    // 選択パネルを表示
+    showSelectedProductPanel(placementElement);
+}
+
+function deselectPlacement() {
+    document.querySelectorAll('.placement.selected').forEach(p => {
+        p.classList.remove('selected');
+    });
+    selectedPlacement = null;
+    document.getElementById('selected-product-panel').style.display = 'none';
+}
+
+function showSelectedProductPanel(placement) {
+    const panel = document.getElementById('selected-product-panel');
+    const info = document.getElementById('selected-product-info');
+    
+    info.innerHTML = `
+        <h6>${placement.querySelector('.product-name').textContent}</h6>
+        <small>${placement.querySelector('.manufacturer-name').textContent}</small><br>
+        <small>配置ID: ${placement.dataset.placementId}</small>
+    `;
+    
+    document.getElementById('edit-x-position').value = placement.dataset.xPosition;
+    document.getElementById('edit-face-count').value = placement.dataset.faceCount;
+    
+    panel.style.display = 'block';
+}
+
+function updateSelectedPlacement() {
+    if (!selectedPlacement) return;
+    
+    const newX = parseFloat(document.getElementById('edit-x-position').value);
+    const newFaces = parseInt(document.getElementById('edit-face-count').value);
+    
+    // API呼び出しで更新
+    const formData = new FormData();
+    formData.append('x_position', newX);
+    formData.append('face_count', newFaces);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    fetch(`{% url "shelves:placement_update_api" 0 %}`.replace('0', selectedPlacement.dataset.placementId), {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 画面上の配置を更新
+            updatePlacementVisual(selectedPlacement, data.placement);
+            updateStatistics();
+            FlexiShelf.showToast('配置を更新しました', 'success');
+        } else {
+            FlexiShelf.showToast('更新に失敗しました', 'error');
+        }
+    });
+}
+
+function deleteSelectedPlacement() {
+    if (!selectedPlacement || !confirm('この配置を削除しますか？')) return;
+    
+    fetch(`{% url "shelves:placement_delete_api" 0 %}`.replace('0', selectedPlacement.dataset.placementId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            selectedPlacement.remove();
+            deselectPlacement();
+            updateStatistics();
+            FlexiShelf.showToast('配置を削除しました', 'success');
+        } else {
+            FlexiShelf.showToast('削除に失敗しました', 'error');
+        }
+    });
+}
+
+function updatePlacementVisual(placementElement, placementData) {
+    placementElement.style.left = placementData.x_position + 'px';
+    placementElement.style.width = placementData.occupied_width + 'px';
+    placementElement.dataset.xPosition = placementData.x_position;
+    placementElement.dataset.faceCount = placementData.face_count;
+    placementElement.dataset.occupiedWidth = placementData.occupied_width;
+    
+    // フェースバッジの更新
+    const existingBadge = placementElement.querySelector('.face-badge');
+    if (placementData.face_count > 1) {
+        if (existingBadge) {
+            existingBadge.textContent = placementData.face_count;
+        } else {
+            const faceBadge = document.createElement('div');
+            faceBadge.className = 'face-badge';
+            faceBadge.textContent = placementData.face_count;
+            placementElement.appendChild(faceBadge);
+        }
+    } else if (existingBadge) {
+        existingBadge.remove();
+    }
+    
+    // 段情報の更新
+    const segment = placementElement.closest('.segment');
+    updateSegmentInfo(segment);
+}
+
+function updateSegmentHeightPreview(segmentId, height) {
+    const segment = document.querySelector(`[data-segment-id="${segmentId}"]`);
+    if (segment) {
+        segment.style.height = height + 'px';
+        segment.dataset.height = height;
+        
+        // 段内の配置の位置を調整
+        const placements = segment.querySelectorAll('.placement');
+        placements.forEach(placement => {
+            const productHeight = parseFloat(placement.dataset.productHeight);
+            placement.style.top = (height - productHeight + 2) + 'px';
+        });
+    }
+}
+
+function applyHeightChanges() {
+    const changes = [];
+    
+    document.querySelectorAll('.height-input').forEach(input => {
+        const segmentId = input.dataset.segmentId;
+        const newHeight = parseFloat(input.value);
+        changes.push({ segmentId, newHeight });
+    });
+    
+    // 各段の高さを更新
+    changes.forEach(change => {
+        const formData = new FormData();
+        formData.append('height', change.newHeight);
+        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        
+        fetch(`{% url "shelves:segment_height_update_api" 0 %}`.replace('0', change.segmentId), {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Y座標の再計算が必要な場合は段を再配置
+                // この実装は複雑になるため、簡易版として現在の実装を使用
+            }
+        });
+    });
+    
+    FlexiShelf.showToast('段高さを更新しました', 'success');
+}
+</script>
+{% endblock %}

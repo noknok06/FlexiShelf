@@ -1,0 +1,10 @@
+<!-- templates/base/components/error.html -->
+<div class="alert alert-danger" role="alert">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-exclamation-triangle-fill me-2" style="font-size: 1.5rem;"></i>
+        <div>
+            <h5 class="alert-heading mb-1">エラーが発生しました</h5>
+            <p class="mb-0">{{ error_message|default:"予期しないエラーが発生しました。しばらく待ってから再度お試しください。" }}</p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,630 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ shelf.name }} - 棚詳細 - FlexiShelf{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">ホーム</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'shelves:list' %}">棚管理</a></li>
+        <li class="breadcrumb-item active">{{ shelf.name }}</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>
+            <i class="bi bi-grid"></i> {{ shelf.name }}
+        </h1>
+        <p class="text-muted mb-0">
+            {{ shelf.width }}×{{ shelf.depth }}cm / {{ shelf.segment_count }}段
+            {% if shelf.location %} / {{ shelf.location }}{% endif %}
+        </p>
+    </div>
+    
+    <div class="btn-group" role="group">
+        <a href="{% url 'shelves:edit' shelf.pk %}" class="btn btn-primary">
+            <i class="bi bi-pencil-square"></i> 棚割り編集
+        </a>
+        <a href="{% url 'shelves:update' shelf.pk %}" class="btn btn-outline-secondary">
+            <i class="bi bi-gear"></i> 設定編集
+        </a>
+        <a href="{% url 'shelves:delete' shelf.pk %}" 
+           class="btn btn-outline-danger"
+           data-confirm-delete="棚「{{ shelf.name }}」を削除しますか？">
+            <i class="bi bi-trash"></i> 削除
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 左カラム: 棚情報・統計 -->
+    <div class="col-lg-4">
+        <!-- 基本情報 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> 基本情報
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="80">棚名:</th>
+                        <td>{{ shelf.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>幅:</th>
+                        <td>{{ shelf.width }}cm</td>
+                    </tr>
+                    <tr>
+                        <th>奥行:</th>
+                        <td>{{ shelf.depth }}cm</td>
+                    </tr>
+                    <tr>
+                        <th>段数:</th>
+                        <td>{{ shelf.segment_count }}段</td>
+                    </tr>
+                    <tr>
+                        <th>総高さ:</th>
+                        <td>{{ shelf.total_height }}cm</td>
+                    </tr>
+                    {% if shelf.location %}
+                    <tr>
+                        <th>設置場所:</th>
+                        <td>{{ shelf.location }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+                
+                {% if shelf.description %}
+                <div class="mt-3">
+                    <h6>説明</h6>
+                    <p class="text-muted">{{ shelf.description|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 配置統計 -->
+        {% if shelf_stats %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> 配置統計
+            </div>
+            <div class="card-body">
+                <div class="row g-3 text-center">
+                    <div class="col-6">
+                        <div class="p-2">
+                            <h5 class="mb-1">{{ shelf_stats.total_products }}</h5>
+                            <small class="text-muted">配置商品数</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2">
+                            <h5 class="mb-1">{{ shelf_stats.total_faces }}</h5>
+                            <small class="text-muted">総フェース数</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2">
+                            <h5 class="mb-1">{{ shelf_stats.own_products }}</h5>
+                            <small class="text-muted">自社商品数</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2">
+                            <h5 class="mb-1">{{ shelf_stats.competitor_products }}</h5>
+                            <small class="text-muted">競合商品数</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>平均利用率</span>
+                        <span class="fw-bold">{{ shelf_stats.avg_utilization|floatformat:1 }}%</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ shelf_stats.avg_utilization }}%"
+                             aria-valuenow="{{ shelf_stats.avg_utilization }}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- クイックアクション -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> クイックアクション
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'shelves:edit' shelf.pk %}" class="btn btn-primary">
+                        <i class="bi bi-pencil-square"></i> 棚割りを編集
+                    </a>
+                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                        <i class="bi bi-plus-circle"></i> 商品を追加
+                    </button>
+                    <button class="btn btn-outline-info" onclick="printShelf()">
+                        <i class="bi bi-printer"></i> 印刷
+                    </button>
+                    <button class="btn btn-outline-success" onclick="exportShelf()">
+                        <i class="bi bi-download"></i> エクスポート
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右カラム: 段一覧と配置状況 -->
+    <div class="col-lg-8">
+        <!-- 棚全体の簡易表示 -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>棚レイアウト概要</span>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary" onclick="toggleGrid()">
+                        <i class="bi bi-grid"></i> グリッド
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="zoomIn()">
+                        <i class="bi bi-zoom-in"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="zoomOut()">
+                        <i class="bi bi-zoom-out"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="shelf-canvas-preview" id="shelf-canvas-preview" 
+                     style="width: 100%; height: {{ shelf.total_height|add:20 }}px; max-height: 400px;">
+                    
+                    <div class="shelf-dimensions">{{ shelf.width }}cm</div>
+                    
+                    {% for segment_data in segments_data %}
+                    <div class="segment" data-level="{{ segment_data.segment.level }}" 
+                         style="height: {{ segment_data.segment.height }}px; position: relative;">
+                        
+                        <div class="segment-label">段{{ segment_data.segment.level }}</div>
+                        
+                        <!-- 配置された商品 -->
+                        {% for placement in segment_data.placements %}
+                        <div class="placement {% if placement.product.is_own_product %}own-product{% else %}competitor-product{% endif %}"
+                             style="left: {{ placement.x_position }}px; 
+                                    width: {{ placement.occupied_width }}px; 
+                                    height: {{ placement.product.height }}px;
+                                    top: {{ segment_data.segment.height|add:placement.product.height|mul:-1|add:2 }}px;"
+                             title="{{ placement.product.name }} ({{ placement.face_count }}面)">
+                            
+                            <div class="product-name">{{ placement.product.name|truncatechars:20 }}</div>
+                            <div class="manufacturer-name">{{ placement.product.manufacturer.name }}</div>
+                            
+                            {% if placement.face_count > 1 %}
+                                <div class="face-badge">{{ placement.face_count }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="segment-info">
+                            {{ segment_data.available_width|floatformat:1 }}cm空き / 
+                            {{ segment_data.utilization|floatformat:1 }}%使用
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 段別詳細情報 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-layers"></i> 段別配置情報
+            </div>
+            <div class="card-body">
+                {% if segments_data %}
+                    <div class="accordion" id="segmentAccordion">
+                        {% for segment_data in segments_data %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ segment_data.segment.level }}">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" 
+                                        type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse{{ segment_data.segment.level }}">
+                                    <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                        <span>
+                                            <strong>段{{ segment_data.segment.level }}</strong>
+                                            (高さ: {{ segment_data.segment.height }}cm)
+                                        </span>
+                                        <div class="d-flex gap-3">
+                                            <span class="badge bg-primary">{{ segment_data.placements|length }}商品</span>
+                                            <span class="badge bg-info">{{ segment_data.utilization|floatformat:1 }}%使用</span>
+                                        </div>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ segment_data.segment.level }}" 
+                                 class="accordion-collapse collapse {% if forloop.first %}show{% endif %}"
+                                 data-bs-parent="#segmentAccordion">
+                                <div class="accordion-body">
+                                    {% if segment_data.placements %}
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        <th>商品名</th>
+                                                        <th>メーカー</th>
+                                                        <th>位置(cm)</th>
+                                                        <th>フェース数</th>
+                                                        <th>占有幅</th>
+                                                        <th>アクション</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for placement in segment_data.placements %}
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                {% if placement.product.image %}
+                                                                    <img src="{{ placement.product.image.url }}" 
+                                                                         class="rounded me-2" width="24" height="24" 
+                                                                         style="object-fit: cover;">
+                                                                {% endif %}
+                                                                <div>
+                                                                    <strong>{{ placement.product.name|truncatechars:30 }}</strong>
+                                                                    {% if placement.product.is_own_product %}
+                                                                        <span class="badge badge-own ms-1">自社</span>
+                                                                    {% else %}
+                                                                        <span class="badge badge-competitor ms-1">競合</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>{{ placement.product.manufacturer.name }}</td>
+                                                        <td>{{ placement.x_position }}-{{ placement.end_position }}</td>
+                                                        <td>{{ placement.face_count }}面</td>
+                                                        <td>{{ placement.occupied_width }}cm</td>
+                                                        <td>
+                                                            <div class="btn-group btn-group-sm" role="group">
+                                                                <a href="{% url 'products:detail' placement.product.pk %}" 
+                                                                   class="btn btn-outline-primary" title="商品詳細">
+                                                                    <i class="bi bi-eye"></i>
+                                                                </a>
+                                                                <button class="btn btn-outline-secondary" 
+                                                                        title="配置編集"
+                                                                        onclick="editPlacement({{ placement.id }})">
+                                                                    <i class="bi bi-pencil"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    {% else %}
+                                        <div class="text-center text-muted py-3">
+                                            <i class="bi bi-inbox" style="font-size: 1.5rem;"></i>
+                                            <p class="mt-2 mb-0">この段には商品が配置されていません</p>
+                                            <button class="btn btn-outline-primary btn-sm mt-2" 
+                                                    onclick="addToSegment({{ segment_data.segment.id }})">
+                                                <i class="bi bi-plus"></i> 商品を追加
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- 段の統計情報 -->
+                                    <div class="mt-3 p-3 bg-light rounded">
+                                        <div class="row text-center">
+                                            <div class="col-3">
+                                                <small class="text-muted d-block">利用可能幅</small>
+                                                <strong>{{ segment_data.available_width|floatformat:1 }}cm</strong>
+                                            </div>
+                                            <div class="col-3">
+                                                <small class="text-muted d-block">使用率</small>
+                                                <strong>{{ segment_data.utilization|floatformat:1 }}%</strong>
+                                            </div>
+                                            <div class="col-3">
+                                                <small class="text-muted d-block">商品数</small>
+                                                <strong>{{ segment_data.placements|length }}</strong>
+                                            </div>
+                                            <div class="col-3">
+                                                <small class="text-muted d-block">総フェース</small>
+                                                <strong>{% for placement in segment_data.placements %}{{ placement.face_count }}{% if not forloop.last %}+{% endif %}{% endfor %}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-layers" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">段が設定されていません</h5>
+                        <p>棚の段を設定してから商品を配置してください。</p>
+                        <a href="{% url 'shelves:update' shelf.pk %}" class="btn btn-primary">
+                            <i class="bi bi-gear"></i> 段を設定
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 商品追加モーダル -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">商品追加</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addProductForm">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">配置する段</label>
+                            <select class="form-select" id="targetSegment" required>
+                                <option value="">段を選択</option>
+                                {% for segment_data in segments_data %}
+                                    <option value="{{ segment_data.segment.id }}">
+                                        段{{ segment_data.segment.level }} ({{ segment_data.available_width|floatformat:1 }}cm空き)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">商品</label>
+                            <input type="text" class="form-control" id="productSearch" 
+                                   placeholder="商品名で検索..." autocomplete="off">
+                            <div id="productSearchResults" class="dropdown-menu w-100" style="max-height: 200px; overflow-y: auto;"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">X座標 (cm)</label>
+                            <input type="number" class="form-control" id="xPosition" 
+                                   step="0.1" min="0" placeholder="0.0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">フェース数</label>
+                            <input type="number" class="form-control" id="faceCount" 
+                                   min="1" value="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">自動配置</label>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="autoPosition" checked>
+                                <label class="form-check-label" for="autoPosition">
+                                    最適位置に配置
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="selectedProductInfo" class="mt-3 p-3 bg-light rounded d-none">
+                        <h6>選択された商品</h6>
+                        <div id="productDetails"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-primary" id="addProductBtn" disabled>
+                    <i class="bi bi-plus"></i> 追加
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/shelf-layout.css' %}" rel="stylesheet">
+<style>
+.shelf-canvas-preview {
+    border: 2px solid #dee2e6;
+    border-radius: 0.375rem;
+    background: #f8f9fa;
+    position: relative;
+    overflow: hidden;
+    transform-origin: top left;
+}
+
+.shelf-canvas-preview .segment {
+    border: 1px solid #dee2e6;
+    margin-bottom: 2px;
+    background: white;
+    position: relative;
+}
+
+.shelf-canvas-preview .placement {
+    position: absolute;
+    border: 1px solid;
+    border-radius: 0.125rem;
+    font-size: 0.7rem;
+    padding: 1px 2px;
+    cursor: pointer;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedProduct = null;
+let currentZoom = 1;
+
+// 商品検索機能
+document.getElementById('productSearch').addEventListener('input', function() {
+    const query = this.value;
+    if (query.length < 2) {
+        document.getElementById('productSearchResults').style.display = 'none';
+        return;
+    }
+    
+    fetch(`{% url 'products:search_api' %}?q=${query}&limit=10`)
+        .then(response => response.json())
+        .then(data => {
+            const results = document.getElementById('productSearchResults');
+            results.innerHTML = '';
+            
+            data.products.forEach(product => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item cursor-pointer';
+                item.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="flex-grow-1">
+                            <strong>${product.name}</strong><br>
+                            <small class="text-muted">${product.manufacturer} / ${product.width}×${product.height}×${product.depth}cm</small>
+                        </div>
+                        <span class="badge ${product.is_own ? 'badge-own' : 'badge-competitor'}">${product.is_own ? '自社' : '競合'}</span>
+                    </div>
+                `;
+                item.addEventListener('click', () => selectProduct(product));
+                results.appendChild(item);
+            });
+            
+            results.style.display = data.products.length > 0 ? 'block' : 'none';
+        });
+});
+
+// 商品選択
+function selectProduct(product) {
+    selectedProduct = product;
+    document.getElementById('productSearch').value = product.name;
+    document.getElementById('productSearchResults').style.display = 'none';
+    
+    // 商品詳細表示
+    const info = document.getElementById('selectedProductInfo');
+    const details = document.getElementById('productDetails');
+    details.innerHTML = `
+        <div class="row">
+            <div class="col-md-8">
+                <strong>${product.name}</strong><br>
+                <small>${product.manufacturer}</small><br>
+                <small>寸法: ${product.width}×${product.height}×${product.depth}cm</small>
+            </div>
+            <div class="col-md-4 text-end">
+                <span class="badge ${product.is_own ? 'badge-own' : 'badge-competitor'}">${product.is_own ? '自社' : '競合'}</span>
+            </div>
+        </div>
+    `;
+    info.classList.remove('d-none');
+    
+    // 追加ボタンを有効化
+    updateAddButton();
+}
+
+// 追加ボタンの状態更新
+function updateAddButton() {
+    const segment = document.getElementById('targetSegment').value;
+    const btn = document.getElementById('addProductBtn');
+    btn.disabled = !selectedProduct || !segment;
+}
+
+document.getElementById('targetSegment').addEventListener('change', updateAddButton);
+
+// 商品追加処理
+document.getElementById('addProductBtn').addEventListener('click', function() {
+    if (!selectedProduct) return;
+    
+    const formData = new FormData();
+    formData.append('shelf_id', {{ shelf.pk }});
+    formData.append('segment_id', document.getElementById('targetSegment').value);
+    formData.append('product_id', selectedProduct.id);
+    formData.append('face_count', document.getElementById('faceCount').value);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    if (document.getElementById('autoPosition').checked) {
+        // 自動配置の場合は最適位置を計算
+        formData.append('x_position', '0'); // サーバー側で最適位置を計算
+    } else {
+        formData.append('x_position', document.getElementById('xPosition').value);
+    }
+    
+    fetch('{% url "shelves:placement_create_api" %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            FlexiShelf.showToast('商品を配置しました', 'success');
+            location.reload(); // 簡易的にページをリロード
+        } else {
+            FlexiShelf.showToast('配置に失敗しました: ' + (data.errors || '不明なエラー'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        FlexiShelf.showToast('エラーが発生しました', 'error');
+    });
+});
+
+// 表示制御機能
+function toggleGrid() {
+    const canvas = document.getElementById('shelf-canvas-preview');
+    canvas.classList.toggle('show-grid');
+}
+
+function zoomIn() {
+    currentZoom = Math.min(currentZoom * 1.2, 3);
+    updateZoom();
+}
+
+function zoomOut() {
+    currentZoom = Math.max(currentZoom / 1.2, 0.5);
+    updateZoom();
+}
+
+function updateZoom() {
+    const canvas = document.getElementById('shelf-canvas-preview');
+    canvas.style.transform = `scale(${currentZoom})`;
+}
+
+// 配置編集
+function editPlacement(placementId) {
+    // 棚割り編集ページに移動
+    window.location.href = `{% url 'shelves:edit' shelf.pk %}?placement=${placementId}`;
+}
+
+// 段に商品追加
+function addToSegment(segmentId) {
+    document.getElementById('targetSegment').value = segmentId;
+    new bootstrap.Modal(document.getElementById('addProductModal')).show();
+}
+
+// 印刷機能
+function printShelf() {
+    window.print();
+}
+
+// エクスポート機能
+function exportShelf() {
+    FlexiShelf.showToast('エクスポート機能は開発中です', 'info');
+}
+
+// 配置のホバーエフェクト
+document.querySelectorAll('.placement').forEach(placement => {
+    placement.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.zIndex = '10';
+    });
+    
+    placement.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.zIndex = '';
+    });
+    
+    placement.addEventListener('click', function() {
+        // 商品詳細ページに移動（placement内のdata属性から商品IDを取得）
+        // 実装時には適切な商品IDを設定する
+    });
+});
+</script>
+{% endblock %>
