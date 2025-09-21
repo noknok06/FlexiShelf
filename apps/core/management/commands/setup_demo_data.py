@@ -66,24 +66,44 @@ class Command(BaseCommand):
         User.objects.filter(username='admin').delete()
 
     def create_admin_user(self):
-        """管理者ユーザー作成"""
-        admin_user, created = User.objects.get_or_create(
-            username='admin',
-            defaults={
-                'email': 'admin@flexishelf.com',
-                'first_name': '管理者',
-                'last_name': 'システム',
-                'role': 'admin',
-                'is_staff': True,
-                'is_superuser': True,
-            }
-        )
-        if created:
-            admin_user.set_password('admin123')
-            admin_user.save()
-            self.stdout.write(f'管理者ユーザー "{admin_user.username}" を作成しました')
-        return admin_user
-
+            """管理者ユーザー作成"""
+            admin_user, created = User.objects.get_or_create(
+                email='admin@flexishelf.com',  # メールアドレスをキーにする
+                defaults={
+                    'username': 'admin',
+                    'first_name': '管理者',
+                    'last_name': 'システム',
+                    'role': 'admin',
+                    'is_staff': True,
+                    'is_superuser': True,
+                    'is_email_verified': True,
+                }
+            )
+            if created:
+                admin_user.set_password('admin123')
+                admin_user.save()
+                self.stdout.write(f'管理者ユーザー "{admin_user.email}" を作成しました')
+            
+            # スタッフユーザーも作成
+            staff_user, created = User.objects.get_or_create(
+                email='staff@flexishelf.com',
+                defaults={
+                    'username': 'staff',
+                    'first_name': 'スタッフ',
+                    'last_name': 'テスト',
+                    'role': 'staff',
+                    'is_staff': False,
+                    'is_superuser': False,
+                    'is_email_verified': True,
+                }
+            )
+            if created:
+                staff_user.set_password('staff123')
+                staff_user.save()
+                self.stdout.write(f'スタッフユーザー "{staff_user.email}" を作成しました')
+            
+            return admin_user
+        
     def create_categories(self):
         """カテゴリ作成"""
         categories_data = [

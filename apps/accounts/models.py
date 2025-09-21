@@ -21,7 +21,7 @@ class User(AbstractUser):
     is_email_verified = models.BooleanField('メール認証済み', default=False)
     
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = ['first_name', 'last_name']
     
     class Meta:
         verbose_name = 'ユーザー'

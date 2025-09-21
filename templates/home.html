@@ -14,12 +14,12 @@
             <p>リアルなスーパー棚陳列を再現する柔軟な棚割りシステムです。</p>
             <hr class="my-4" style="border-color: rgba(255,255,255,0.3);">
             <div class="d-flex gap-3">
-                <a href="{% url 'shelves:list' %}" class="btn btn-light btn-lg">
-                    <i class="bi bi-grid"></i> 棚管理を始める
-                </a>
-                <a href="{% url 'products:list' %}" class="btn btn-outline-light btn-lg">
-                    <i class="bi bi-box"></i> 商品管理
-                </a>
+                <button class="btn btn-light btn-lg" disabled>
+                    <i class="bi bi-grid"></i> 棚管理（準備中）
+                </button>
+                <button class="btn btn-outline-light btn-lg" disabled>
+                    <i class="bi bi-box"></i> 商品管理（準備中）
+                </button>
             </div>
         </div>
     </div>
@@ -31,11 +31,11 @@
         <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-grid display-4 text-primary mb-3"></i>
-                <h2 class="card-title">{{ total_shelves }}</h2>
+                <h2 class="card-title">{{ total_shelves|default:0 }}</h2>
                 <p class="card-text">登録済み棚数</p>
-                <a href="{% url 'shelves:list' %}" class="btn btn-primary">
-                    <i class="bi bi-arrow-right"></i> 棚管理へ
-                </a>
+                <button class="btn btn-primary" disabled>
+                    <i class="bi bi-arrow-right"></i> 棚管理へ（準備中）
+                </button>
             </div>
         </div>
     </div>
@@ -44,11 +44,11 @@
         <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-box display-4 text-success mb-3"></i>
-                <h2 class="card-title">{{ total_products }}</h2>
+                <h2 class="card-title">{{ total_products|default:0 }}</h2>
                 <p class="card-text">登録済み商品数</p>
-                <a href="{% url 'products:list' %}" class="btn btn-success">
-                    <i class="bi bi-arrow-right"></i> 商品管理へ
-                </a>
+                <button class="btn btn-success" disabled>
+                    <i class="bi bi-arrow-right"></i> 商品管理へ（準備中）
+                </button>
             </div>
         </div>
     </div>
@@ -57,111 +57,85 @@
         <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-bullseye display-4 text-info mb-3"></i>
-                <h2 class="card-title">{{ total_placements }}</h2>
+                <h2 class="card-title">{{ total_placements|default:0 }}</h2>
                 <p class="card-text">配置済み商品数</p>
-                <a href="{% url 'shelves:list' %}" class="btn btn-info">
-                    <i class="bi bi-arrow-right"></i> 配置を見る
-                </a>
+                <button class="btn btn-info" disabled>
+                    <i class="bi bi-arrow-right"></i> 配置を見る（準備中）
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <div class="row">
-    <!-- 最近の棚 -->
-    <div class="col-lg-7">
+    <!-- アカウント情報 -->
+    <div class="col-lg-6">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="bi bi-grid"></i> 最近追加された棚
+                    <i class="bi bi-person-circle"></i> アカウント情報
                 </h5>
-                <a href="{% url 'shelves:list' %}" class="btn btn-outline-primary btn-sm">
-                    すべて見る
-                </a>
             </div>
             <div class="card-body">
-                {% if recent_shelves %}
-                    {% for shelf in recent_shelves %}
-                    <div class="d-flex justify-content-between align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
-                        <div>
-                            <h6 class="mb-1">{{ shelf.name }}</h6>
-                            <small class="text-muted">
-                                {{ shelf.width }}×{{ shelf.depth }}cm / {{ shelf.segment_count }}段
-                                {% if shelf.location %} / {{ shelf.location }}{% endif %}
-                            </small>
-                        </div>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="{% url 'shelves:detail' shelf.pk %}" 
-                               class="btn btn-outline-primary">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="{% url 'shelves:edit' shelf.pk %}" 
-                               class="btn btn-outline-success">
-                                <i class="bi bi-pencil-square"></i>
-                            </a>
-                        </div>
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-person-circle me-3" style="font-size: 3rem; color: #0d6efd;"></i>
+                    <div>
+                        <h6 class="mb-1">{{ user.get_full_name|default:user.username }}</h6>
+                        <small class="text-muted">{{ user.email }}</small><br>
+                        <small class="text-muted">{{ user.get_role_display }}</small>
+                        {% if user.department %}
+                            <br><small class="text-muted">{{ user.department }}</small>
+                        {% endif %}
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center text-muted py-4">
-                        <i class="bi bi-grid" style="font-size: 2rem;"></i>
-                        <p class="mt-2 mb-0">まだ棚が登録されていません</p>
-                        <a href="{% url 'shelves:create' %}" class="btn btn-primary btn-sm mt-2">
-                            <i class="bi bi-plus"></i> 最初の棚を作成
-                        </a>
-                    </div>
-                {% endif %}
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-person-gear"></i> プロフィールを見る
+                    </a>
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-outline-success">
+                        <i class="bi bi-pencil-square"></i> プロフィール編集
+                    </a>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- 最近の商品 -->
-    <div class="col-lg-5">
+    <!-- システム情報 -->
+    <div class="col-lg-6">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="bi bi-box"></i> 最近追加された商品
+                    <i class="bi bi-info-circle"></i> システム情報
                 </h5>
-                <a href="{% url 'products:list' %}" class="btn btn-outline-success btn-sm">
-                    すべて見る
-                </a>
             </div>
             <div class="card-body">
-                {% if recent_products %}
-                    {% for product in recent_products %}
-                    <div class="d-flex align-items-center py-2 {% if not forloop.last %}border-bottom{% endif %}">
-                        {% if product.image %}
-                            <img src="{{ product.image.url }}" 
-                                 class="rounded me-3" width="40" height="40" 
-                                 style="object-fit: cover;">
-                        {% else %}
-                            <div class="bg-light rounded me-3 d-flex align-items-center justify-content-center" 
-                                 style="width: 40px; height: 40px;">
-                                <i class="bi bi-image text-muted"></i>
-                            </div>
-                        {% endif %}
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">{{ product.name|truncatechars:25 }}</h6>
-                            <small class="text-muted">{{ product.manufacturer.name }}</small>
-                        </div>
-                        <div>
-                            {% if product.is_own_product %}
-                                <span class="badge badge-own">自社</span>
-                            {% else %}
-                                <span class="badge badge-competitor">競合</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-center text-muted py-4">
-                        <i class="bi bi-box" style="font-size: 2rem;"></i>
-                        <p class="mt-2 mb-0">まだ商品が登録されていません</p>
-                        <a href="{% url 'products:create' %}" class="btn btn-success btn-sm mt-2">
-                            <i class="bi bi-plus"></i> 最初の商品を作成
-                        </a>
-                    </div>
-                {% endif %}
+                <div class="mb-3">
+                    <h6>FlexiShelf v1.0</h6>
+                    <p class="text-muted mb-2">次世代棚割りシステム</p>
+                </div>
+                
+                <div class="border-top pt-3">
+                    <h6>開発状況</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>アカウント管理</strong> - 完了
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-clock text-warning me-2"></i>
+                            <strong>棚管理</strong> - 開発中
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-clock text-warning me-2"></i>
+                            <strong>商品管理</strong> - 開発中
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-clock text-warning me-2"></i>
+                            <strong>配置シミュレーション</strong> - 開発中
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -179,28 +153,73 @@
             <div class="card-body">
                 <div class="row text-center">
                     <div class="col-md-3">
-                        <a href="{% url 'shelves:create' %}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                        <button class="btn btn-outline-primary btn-lg w-100 mb-2" disabled>
                             <i class="bi bi-plus-circle d-block mb-2" style="font-size: 2rem;"></i>
-                            新しい棚を作成
-                        </a>
+                            新しい棚を作成<br>
+                            <small class="text-muted">（準備中）</small>
+                        </button>
                     </div>
                     <div class="col-md-3">
-                        <a href="{% url 'products:create' %}" class="btn btn-outline-success btn-lg w-100 mb-2">
+                        <button class="btn btn-outline-success btn-lg w-100 mb-2" disabled>
                             <i class="bi bi-box-arrow-in-down d-block mb-2" style="font-size: 2rem;"></i>
-                            商品を登録
+                            商品を登録<br>
+                            <small class="text-muted">（準備中）</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-outline-info btn-lg w-100 mb-2">
+                            <i class="bi bi-person-gear d-block mb-2" style="font-size: 2rem;"></i>
+                            プロフィール管理
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="{% url 'shelves:list' %}" class="btn btn-outline-info btn-lg w-100 mb-2">
-                            <i class="bi bi-pencil-square d-block mb-2" style="font-size: 2rem;"></i>
-                            棚割りを編集
-                        </a>
+                        {% if user.is_staff %}
+                            <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary btn-lg w-100 mb-2">
+                                <i class="bi bi-gear d-block mb-2" style="font-size: 2rem;"></i>
+                                システム管理
+                            </a>
+                        {% else %}
+                            <button class="btn btn-outline-secondary btn-lg w-100 mb-2" disabled>
+                                <i class="bi bi-gear d-block mb-2" style="font-size: 2rem;"></i>
+                                システム管理<br>
+                                <small class="text-muted">（権限なし）</small>
+                            </button>
+                        {% endif %}
                     </div>
-                    <div class="col-md-3">
-                        <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary btn-lg w-100 mb-2">
-                            <i class="bi bi-gear d-block mb-2" style="font-size: 2rem;"></i>
-                            システム管理
-                        </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 次のステップ -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-right-circle"></i> 次のステップ
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>FlexiShelfアカウントの作成が完了しました！現在、システムの他の機能を開発中です。</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>現在利用可能な機能：</h6>
+                        <ul>
+                            <li>ユーザー登録・ログイン</li>
+                            <li>プロフィール管理</li>
+                            <li>基本的な画面遷移</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>開発予定の機能：</h6>
+                        <ul>
+                            <li>棚の作成・管理</li>
+                            <li>商品マスター管理</li>
+                            <li>棚割りシミュレーション</li>
+                            <li>レポート出力</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -228,14 +247,8 @@
     color: inherit;
 }
 
-.badge-own {
-    background-color: #198754;
-    color: white;
-}
-
-.badge-competitor {
-    background-color: #ffc107;
-    color: black;
+.btn:disabled {
+    opacity: 0.6;
 }
 </style>
 {% endblock %}

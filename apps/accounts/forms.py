@@ -49,19 +49,12 @@ class CustomUserCreationForm(UserCreationForm):
     
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'password1', 'password2', 'department')
-        widgets = {
-            'username': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'ユーザー名を入力'
-            }),
-        }
+        fields = ('email', 'first_name', 'last_name', 'password1', 'password2', 'department')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         # フィールドラベルの設定
-        self.fields['username'].label = 'ユーザー名'
         self.fields['email'].label = 'メールアドレス'
         self.fields['first_name'].label = '名'
         self.fields['last_name'].label = '姓'
@@ -80,7 +73,6 @@ class CustomUserCreationForm(UserCreationForm):
         })
         
         # ヘルプテキストの設定
-        self.fields['username'].help_text = '150文字以下。英数字と @/./+/-/_ のみ使用可能'
         self.fields['email'].help_text = 'ログイン時に使用します'
         self.fields['password1'].help_text = '8文字以上で、一般的でないパスワードを設定してください'
 
@@ -91,10 +83,40 @@ class CustomUserCreationForm(UserCreationForm):
             raise ValidationError('このメールアドレスは既に使用されています。')
         return email
 
+    def generate_username(self, email):
+        """メールアドレスからユーザー名を自動生成"""
+        import re
+        import uuid
+        
+        # メールアドレスのローカル部分を取得
+        local_part = email.split('@')[0]
+        
+        # 英数字とアンダースコアのみに変換
+        username_base = re.sub(r'[^a-zA-Z0-9_]', '', local_part)
+        
+        # 空または短すぎる場合は'user'をベースにする
+        if not username_base or len(username_base) < 3:
+            username_base = 'user'
+        
+        # 一意性を確保
+        username = username_base
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{username_base}{counter}"
+            counter += 1
+            
+            # 無限ループ防止（100回試行後はランダム）
+            if counter > 100:
+                username = f"{username_base}_{uuid.uuid4().hex[:8]}"
+                break
+        
+        return username
+
     def save(self, commit=True):
         """ユーザー保存"""
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
+        user.username = self.generate_username(self.cleaned_data['email'])  # 自動生成
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
         user.department = self.cleaned_data.get('department', '')
@@ -110,7 +132,7 @@ class CustomAuthenticationForm(AuthenticationForm):
     username = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-lg',
-            'placeholder': 'ユーザー名またはメールアドレス',
+            'placeholder': 'メールアドレス',
             'autofocus': True
         })
     )
@@ -124,26 +146,19 @@ class CustomAuthenticationForm(AuthenticationForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].label = 'ユーザー名またはメールアドレス'
+        self.fields['username'].label = 'メールアドレス'
         self.fields['password'].label = 'パスワード'
 
     def clean(self):
-        """メールアドレスでのログイン対応"""
+        """メールアドレスでのログイン処理"""
         username = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
 
         if username is not None and password:
-            # メールアドレスでログインを試行
-            if '@' in username:
-                try:
-                    user = User.objects.get(email=username)
-                    username = user.username
-                except User.DoesNotExist:
-                    pass
-            
+            # メールアドレスを直接使用（USERNAME_FIELD='email'のため）
             self.user_cache = authenticate(
                 self.request, 
-                username=username, 
+                username=username,  # Djangoは内部でUSERNAME_FIELDを使って認証する
                 password=password
             )
             
