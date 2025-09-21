@@ -1,0 +1,216 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}プロフィール - FlexiShelf{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">ホーム</a></li>
+        <li class="breadcrumb-item active">プロフィール</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-4">
+        <!-- プロフィールカード -->
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-person-circle display-1 text-primary"></i>
+                </div>
+                <h4>{{ user.get_full_name|default:user.username }}</h4>
+                <p class="text-muted">{{ user.get_role_display }}</p>
+                {% if user.department %}
+                    <p class="text-muted">
+                        <i class="bi bi-building"></i> {{ user.department }}
+                    </p>
+                {% endif %}
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> プロフィール編集
+                    </a>
+                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#passwordChangeModal">
+                        <i class="bi bi-key"></i> パスワード変更
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 統計カード -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> 活動統計
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="p-2">
+                            <h5 class="mb-1">{{ user.shelf_created.count }}</h5>
+                            <small class="text-muted">作成した棚</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2">
+                            <h5 class="mb-1">{{ user.product_created.count }}</h5>
+                            <small class="text-muted">登録した商品</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <!-- 基本情報 -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> 基本情報
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <strong>ユーザー名:</strong><br>
+                        {{ user.username }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>メールアドレス:</strong><br>
+                        {{ user.email }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>名前:</strong><br>
+                        {{ user.get_full_name|default:"未設定" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>役職:</strong><br>
+                        {{ user.get_role_display }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>部署:</strong><br>
+                        {{ user.department|default:"未設定" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>電話番号:</strong><br>
+                        {{ user.phone|default:"未設定" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>登録日:</strong><br>
+                        {{ user.date_joined|date:"Y年m月d日" }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>最終ログイン:</strong><br>
+                        {{ user.last_login|date:"Y年m月d日 H:i"|default:"未記録" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 最近の活動 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> 最近の活動
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>最近作成した棚</h6>
+                        {% with recent_shelves=user.shelf_created.all|slice:":3" %}
+                            {% if recent_shelves %}
+                                <ul class="list-unstyled">
+                                    {% for shelf in recent_shelves %}
+                                    <li class="mb-2">
+                                        <a href="{% url 'shelves:detail' shelf.pk %}" class="text-decoration-none">
+                                            <i class="bi bi-grid"></i> {{ shelf.name }}
+                                        </a>
+                                        <br><small class="text-muted">{{ shelf.created_at|date:"m/d H:i" }}</small>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">まだ棚を作成していません</p>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6>最近登録した商品</h6>
+                        {% with recent_products=user.product_created.all|slice:":3" %}
+                            {% if recent_products %}
+                                <ul class="list-unstyled">
+                                    {% for product in recent_products %}
+                                    <li class="mb-2">
+                                        <a href="{% url 'products:detail' product.pk %}" class="text-decoration-none">
+                                            <i class="bi bi-box"></i> {{ product.name|truncatechars:20 }}
+                                        </a>
+                                        <br><small class="text-muted">{{ product.created_at|date:"m/d H:i" }}</small>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted">まだ商品を登録していません</p>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- クイックアクション -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> クイックアクション
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a href="{% url 'shelves:create' %}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-plus-circle d-block mb-1"></i>
+                            新しい棚
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'products:create' %}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-box-arrow-in-down d-block mb-1"></i>
+                            商品登録
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'shelves:list' %}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-grid-3x3 d-block mb-1"></i>
+                            棚一覧
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'products:list' %}" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-search d-block mb-1"></i>
+                            商品検索
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- パスワード変更モーダル -->
+<div class="modal fade" id="passwordChangeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">パスワード変更</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>パスワードの変更はセキュリティ上の理由により、管理者にお問い合わせください。</p>
+                <p>または、ログアウト後にパスワードリセット機能をご利用ください。</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                <a href="{% url 'accounts:logout' %}" class="btn btn-primary">ログアウト</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

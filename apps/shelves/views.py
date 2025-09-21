@@ -11,51 +11,11 @@ from django.db.models import Q, Count, Sum, Avg, Prefetch
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from .models import Shelf, ShelfSegment, ProductPlacement
 from .forms import ShelfForm, ShelfSegmentFormSet, ProductPlacementForm
 from apps.products.models import Product
-
-
-@method_decorator(login_required, name='dispatch')
-class ShelfListView(ListView):
-    """棚一覧ビュー"""
-    model = Shelf
-    template_name = 'shelves/list.html'
-    context_object_name = 'shelves'
-    paginate_by = 12
-
-    def get_queryset(self):
-        queryset = Shelf.objects.filter(is_active=True).prefetch_related(
-            'segments',
-            Prefetch('placements', queryset=ProductPlacement.objects.filter(is_active=True))
-        ).annotate(
-            segment_count=Count('segments', filter=Q(segments__is_active=True)),
-            placement_count=Count('placements', filter=Q(placements__is_active=True))
-        ).order_by('name')
-        
-        # 検索フィルタリング
-        search_query = self.request.GET.get('search', '')
-        if search_query:
-            queryset = queryset.filter(
-                Q(name__icontains=search_query) |
-                Q(location__icontains=search_query)
-            )
-        
-        return queryset
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # 統計情報
-        context['stats'] = {
-            'total_shelves': Shelf.objects.filter(is_active=True).count(),
-            'total_segments': ShelfSegment.objects.filter(is_active=True).count(),
-            'total_placements': ProductPlacement.objects.filter(is_active=True).count(),
-        }
-        
-        return context
-
 
 @method_decorator(login_required, name='dispatch')
 class ShelfDetailView(DetailView):
@@ -125,7 +85,16 @@ class ShelfCreateView(CreateView):
         if self.request.POST:
             context['segment_formset'] = ShelfSegmentFormSet(self.request.POST, prefix='segments')
         else:
-            context['segment_formset'] = ShelfSegmentFormSet(prefix='segments')
+            # デフォルトで4段の棚を作成
+            context['segment_formset'] = ShelfSegmentFormSet(
+                prefix='segments',
+                initial=[
+                    {'level': 1, 'height': 25.0},
+                    {'level': 2, 'height': 30.0},
+                    {'level': 3, 'height': 35.0},
+                    {'level': 4, 'height': 40.0},
+                ]
+            )
         
         return context
 
@@ -135,15 +104,22 @@ class ShelfCreateView(CreateView):
         
         form.instance.created_by = self.request.user
         
-        if segment_formset.is_valid():
-            self.object = form.save()
-            segment_formset.instance = self.object
-            segment_formset.save()
-            
-            messages.success(self.request, f'棚「{self.object.name}」を作成しました。')
-            return redirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
+        with transaction.atomic():
+            if segment_formset.is_valid():
+                self.object = form.save()
+                segment_formset.instance = self.object
+                
+                # 段の作成と段番号の自動設定
+                segments = segment_formset.save(commit=False)
+                for i, segment in enumerate(segments, 1):
+                    segment.level = i
+                    segment.created_by = self.request.user
+                    segment.save()
+                
+                messages.success(self.request, f'棚「{self.object.name}」を作成しました。')
+                return redirect(self.get_success_url())
+            else:
+                return self.form_invalid(form)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -185,14 +161,26 @@ class ShelfUpdateView(UpdateView):
         
         form.instance.updated_by = self.request.user
         
-        if segment_formset.is_valid():
-            self.object = form.save()
-            segment_formset.save()
-            
-            messages.success(self.request, f'棚「{self.object.name}」を更新しました。')
-            return redirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
+        with transaction.atomic():
+            if segment_formset.is_valid():
+                self.object = form.save()
+                
+                # 段の更新
+                segments = segment_formset.save(commit=False)
+                for i, segment in enumerate(segments, 1):
+                    segment.level = i
+                    segment.updated_by = self.request.user
+                    segment.save()
+                
+                # 削除マークされた段を処理
+                for segment in segment_formset.deleted_objects:
+                    segment.delete()
+                
+                messages.success(self.request, f'棚「{self.object.name}」を更新しました。')
+                return redirect(self.get_success_url())
+            else:
+                return self.form_invalid(form)
+
 
 
 @login_required
@@ -276,7 +264,7 @@ class ShelfEditView(DetailView):
 @login_required
 @require_http_methods(["POST"])
 def placement_create_api(request):
-    """商品配置API"""
+    """商品配置API（基本実装）"""
     try:
         shelf_id = request.POST.get('shelf_id')
         segment_id = request.POST.get('segment_id')
@@ -288,8 +276,15 @@ def placement_create_api(request):
         segment = get_object_or_404(ShelfSegment, id=segment_id, shelf=shelf, is_active=True)
         product = get_object_or_404(Product, id=product_id, is_active=True)
         
+        # 簡易的なバリデーション
+        if product.height > segment.height:
+            return JsonResponse({
+                'success': False,
+                'errors': ['商品の高さが段の高さを超えています']
+            }, status=400)
+        
         # 新しい配置を作成
-        placement = ProductPlacement(
+        placement = ProductPlacement.objects.create(
             shelf=shelf,
             segment=segment,
             product=product,
@@ -297,10 +292,6 @@ def placement_create_api(request):
             face_count=face_count,
             created_by=request.user
         )
-        
-        # バリデーション
-        placement.full_clean()
-        placement.save()
         
         return JsonResponse({
             'success': True,
@@ -313,16 +304,6 @@ def placement_create_api(request):
             }
         })
         
-    except ValidationError as e:
-        return JsonResponse({
-            'success': False,
-            'errors': e.message_dict if hasattr(e, 'message_dict') else [str(e)]
-        }, status=400)
-    except ValueError as e:
-        return JsonResponse({
-            'success': False,
-            'errors': ['入力値が正しくありません']
-        }, status=400)
     except Exception as e:
         return JsonResponse({
             'success': False,
@@ -399,7 +380,6 @@ def placement_delete_api(request, placement_id):
             'success': False,
             'errors': [str(e)]
         }, status=500)
-
 
 @login_required
 def segment_height_update_api(request, segment_id):

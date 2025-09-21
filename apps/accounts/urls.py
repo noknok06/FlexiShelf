@@ -1,12 +1,13 @@
 # apps/accounts/urls.py
 from django.urls import path
-from django.http import HttpResponse
+from . import views
 
 app_name = 'accounts'
 
-def temp_view(request):
-    return HttpResponse("<h1>Accounts App</h1><p>ユーザー管理機能（開発中）</p>")
-
 urlpatterns = [
-    path('', temp_view, name='index'),
+    path('login/', views.CustomLoginView.as_view(), name='login'),
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('logout/', views.logout_view, name='logout'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
+    path('profile/edit/', views.ProfileUpdateView.as_view(), name='profile_edit'),
 ]

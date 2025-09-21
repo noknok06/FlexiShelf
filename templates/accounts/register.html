@@ -1,0 +1,337 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}ユーザー登録 - FlexiShelf{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="text-center mb-4">
+            <h1 class="display-4 text-primary">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+            </h1>
+            <h2>FlexiShelf</h2>
+            <p class="text-muted">アカウント作成</p>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-header text-center">
+                <h4 class="mb-0">新規登録</h4>
+            </div>
+            <div class="card-body">
+                {% if form.errors %}
+                    <div class="alert alert-danger">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                {% if field == '__all__' %}
+                                    {{ error }}
+                                {% else %}
+                                    <strong>{{ field }}:</strong> {{ error }}
+                                {% endif %}
+                                {% if not forloop.last %}<br>{% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row g-3">
+                        <!-- ユーザー名 -->
+                        <div class="col-12">
+                            <label for="{{ form.username.id_for_label }}" class="form-label required">
+                                <i class="bi bi-person"></i> {{ form.username.label }}
+                            </label>
+                            {{ form.username }}
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.username.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.username.help_text %}
+                                <div class="form-text">{{ form.username.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- メールアドレス -->
+                        <div class="col-12">
+                            <label for="{{ form.email.id_for_label }}" class="form-label required">
+                                <i class="bi bi-envelope"></i> {{ form.email.label }}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.email.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.email.help_text %}
+                                <div class="form-text">{{ form.email.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 名前 -->
+                        <div class="col-md-6">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label required">
+                                {{ form.last_name.label }}
+                            </label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.last_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label required">
+                                {{ form.first_name.label }}
+                            </label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.first_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 部署 -->
+                        <div class="col-12">
+                            <label for="{{ form.department.id_for_label }}" class="form-label">
+                                <i class="bi bi-building"></i> {{ form.department.label }}
+                            </label>
+                            {{ form.department }}
+                            {% if form.department.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.department.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- パスワード -->
+                        <div class="col-md-6">
+                            <label for="{{ form.password1.id_for_label }}" class="form-label required">
+                                <i class="bi bi-lock"></i> {{ form.password1.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ form.password1 }}
+                                <button class="btn btn-outline-secondary" type="button" 
+                                        onclick="togglePassword('{{ form.password1.id_for_label }}', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {% if form.password1.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.password1.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.password1.help_text %}
+                                <div class="form-text">{{ form.password1.help_text }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.password2.id_for_label }}" class="form-label required">
+                                <i class="bi bi-lock-fill"></i> {{ form.password2.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ form.password2 }}
+                                <button class="btn btn-outline-secondary" type="button" 
+                                        onclick="togglePassword('{{ form.password2.id_for_label }}', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {% if form.password2.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.password2.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 利用規約 -->
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            <a href="#" class="text-decoration-none">利用規約</a>および
+                            <a href="#" class="text-decoration-none">プライバシーポリシー</a>に同意します
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg" id="register-btn">
+                            <i class="bi bi-person-plus"></i> アカウントを作成
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <small class="text-muted">
+                    すでにアカウントをお持ちですか？ 
+                    <a href="{% url 'accounts:login' %}" class="text-decoration-none">ログイン</a>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.required::after {
+    content: ' *';
+    color: #dc3545;
+}
+
+.card {
+    border: none;
+    border-radius: 1rem;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    color: white;
+    border-radius: 1rem 1rem 0 0 !important;
+    border: none;
+}
+
+.form-control {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+
+.btn-lg {
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+}
+
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.navbar,
+footer {
+    display: none !important;
+}
+
+.container-fluid {
+    padding: 2rem;
+}
+
+.shadow {
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
+}
+
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// パスワード表示切り替え
+function togglePassword(inputId, button) {
+    const input = document.getElementById(inputId);
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // フォーム送信時のローディング表示
+    const form = document.querySelector('form');
+    const registerBtn = document.getElementById('register-btn');
+    
+    if (form && registerBtn) {
+        form.addEventListener('submit', function() {
+            registerBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>作成中...';
+            registerBtn.disabled = true;
+        });
+    }
+    
+    // パスワード強度チェック
+    const password1 = document.getElementById('{{ form.password1.id_for_label }}');
+    if (password1) {
+        password1.addEventListener('input', function() {
+            const value = this.value;
+            const strength = calculatePasswordStrength(value);
+            updatePasswordStrengthIndicator(strength);
+        });
+    }
+    
+    // リアルタイムバリデーション
+    document.querySelectorAll('input[required]').forEach(input => {
+        input.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+    });
+    
+    // メールアドレスの形式チェック
+    const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+    if (emailInput) {
+        emailInput.addEventListener('blur', function() {
+            const email = this.value;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (email && !emailRegex.test(email)) {
+                this.classList.add('is-invalid');
+                showCustomError(this, 'メールアドレスの形式が正しくありません');
+            } else if (email) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+                hideCustomError(this);
+            }
+        });
+    }
+});
+
+function calculatePasswordStrength(password) {
+    let strength = 0;
+    
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^a-zA-Z\d]/.test(password)) strength++;
+    
+    return strength;
+}
+
+function updatePasswordStrengthIndicator(strength) {
+    // パスワード強度表示の実装（オプション）
+    // 必要に応じて強度インジケーターを追加
+}
+
+function showCustomError(input, message) {
+    let errorDiv = input.parentNode.querySelector('.custom-error');
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.className = 'custom-error invalid-feedback d-block';
+        input.parentNode.appendChild(errorDiv);
+    }
+    errorDiv.textContent = message;
+}
+
+function hideCustomError(input) {
+    const errorDiv = input.parentNode.querySelector('.custom-error');
+    if (errorDiv) {
+        errorDiv.remove();
+    }
+}
+</script>
+{% endblock %}

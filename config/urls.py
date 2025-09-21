@@ -5,19 +5,40 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponse
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from apps.products.models import Product
+from apps.shelves.models import Shelf, ProductPlacement
 
-# 一時的なホームページビュー
+
+@login_required
 def home_view(request):
-    return HttpResponse("<h1>FlexiShelf - 棚割りシステム</h1><p><a href='/admin/'>管理画面へ</a></p>")
+    """ホームページビュー"""
+    context = {
+        'total_shelves': Shelf.objects.filter(is_active=True).count(),
+        'total_products': Product.objects.filter(is_active=True).count(),
+        'total_placements': ProductPlacement.objects.filter(is_active=True).count(),
+        'recent_shelves': Shelf.objects.filter(is_active=True).order_by('-created_at')[:5],
+        'recent_products': Product.objects.filter(is_active=True).order_by('-created_at')[:5],
+    }
+    return render(request, 'home.html', context)
+
+
+def public_home_view(request):
+    """未ログイン時のホームページ"""
+    if request.user.is_authenticated:
+        return home_view(request)
+    return render(request, 'public_home.html')
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home_view, name='home'),
+    path('', public_home_view, name='home'),
+    path('dashboard/', home_view, name='dashboard'),
     path('accounts/', include('apps.accounts.urls')),
-    path('products/', include('apps.products.urls')),  # ビュー作成後に有効化
-    path('shelves/', include('apps.shelves.urls')),    # ビュー作成後に有効化
-    path('proposals/', include('apps.proposals.urls')), # ビュー作成後に有効化
+    path('products/', include('apps.products.urls')),
+    path('shelves/', include('apps.shelves.urls')),
+    path('proposals/', include('apps.proposals.urls')),
 ]
 
 # Development static/media files serving
