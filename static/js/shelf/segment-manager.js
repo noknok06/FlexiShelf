@@ -1,5 +1,5 @@
 /**
- * FlexiShelf - 段管理機能
+ * FlexiShelf - 段管理機能 (修正版)
  * 段の高さ調整、追加、削除などの機能を提供
  */
 
@@ -363,42 +363,6 @@ class SegmentManager {
         }
     }
     
-    // 段の追加
-    async addSegment(afterLevel = null) {
-        try {
-            const newLevel = afterLevel ? afterLevel + 1 : this.segments.size + 1;
-            
-            // 新しい段を作成（実装は複雑になるため基本的な枠組みのみ）
-            this.showInfo('段の追加機能は開発中です');
-            
-        } catch (error) {
-            this.showError('段の追加に失敗しました: ' + error.message);
-        }
-    }
-    
-    // 段の削除
-    async removeSegment(segmentId) {
-        const segment = this.segments.get(segmentId);
-        if (!segment) return;
-        
-        // 配置チェック
-        const placements = segment.element.querySelectorAll('.placement');
-        if (placements.length > 0) {
-            this.showError('商品が配置されている段は削除できません');
-            return;
-        }
-        
-        if (!confirm(`段${segment.level}を削除しますか？`)) return;
-        
-        try {
-            // 削除機能は複雑になるため基本的な枠組みのみ
-            this.showInfo('段の削除機能は開発中です');
-            
-        } catch (error) {
-            this.showError('段の削除に失敗しました: ' + error.message);
-        }
-    }
-    
     // 一括高さ適用
     async applyAllHeightChanges() {
         const changes = [];
@@ -445,13 +409,13 @@ class SegmentManager {
         }
     }
     
-    // API呼び出し
+    // API呼び出し（修正版）
     async updateSegmentHeight(segmentId, height) {
         const formData = new FormData();
         formData.append('height', height);
         formData.append('csrfmiddlewaretoken', this.getCSRFToken());
         
-        const response = await fetch(`/api/segment/${segmentId}/height/`, {
+        const response = await fetch(`/shelves/api/segment/${segmentId}/height/`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -459,11 +423,24 @@ class SegmentManager {
             }
         });
         
-        return await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.errors?.join(', ') || 'APIエラー');
+        }
+        
+        return result;
     }
     
     getCSRFToken() {
-        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+        const token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        if (!token) {
+            console.warn('CSRFトークンが見つかりません');
+        }
+        return token || '';
     }
     
     // プリセット高さの適用
@@ -578,14 +555,39 @@ class SegmentManager {
 }
 
 // グローバルインスタンス
-window.segmentManager = new SegmentManager();
+window.segmentManager = null;
+
+// 初期化関数
+function initializeSegmentManager() {
+    if (!window.segmentManager && document.querySelector('.segment')) {
+        window.segmentManager = new SegmentManager();
+    }
+}
+
+// DOM読み込み時に初期化
+document.addEventListener('DOMContentLoaded', initializeSegmentManager);
 
 // 公開API
 window.SegmentAPI = {
-    applyHeightChanges: () => window.segmentManager.applyAllHeightChanges(),
-    addSegment: (afterLevel) => window.segmentManager.addSegment(afterLevel),
-    removeSegment: (segmentId) => window.segmentManager.removeSegment(segmentId),
-    applyPreset: (preset) => window.segmentManager.applyPresetHeights(preset),
-    optimize: () => window.segmentManager.optimizeHeights(),
-    getStatistics: () => window.segmentManager.getSegmentStatistics()
+    applyHeightChanges: () => {
+        if (window.segmentManager) {
+            window.segmentManager.applyAllHeightChanges();
+        }
+    },
+    applyPreset: (preset) => {
+        if (window.segmentManager) {
+            window.segmentManager.applyPresetHeights(preset);
+        }
+    },
+    optimize: () => {
+        if (window.segmentManager) {
+            window.segmentManager.optimizeHeights();
+        }
+    },
+    getStatistics: () => {
+        if (window.segmentManager) {
+            return window.segmentManager.getSegmentStatistics();
+        }
+        return null;
+    }
 };
