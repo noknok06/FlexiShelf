@@ -1,5 +1,6 @@
 {% extends 'base/base.html' %}
 {% load static %}
+{% load math_filters %}
 
 {% block title %}棚管理 - FlexiShelf{% endblock %}
 
@@ -142,7 +143,7 @@
                                 <div class="col-4">
                                     <div class="p-2 bg-light rounded">
                                         <small class="d-block text-muted">段数</small>
-                                        <strong>{{ shelf.segment_count }}</strong>
+                                        <strong>{{ shelf.annotated_segment_count|default:shelf.segment_count }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -156,10 +157,10 @@
                             
                             <!-- 配置状況 -->
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge {% if shelf.placement_count > 0 %}bg-success{% else %}bg-secondary{% endif %}">
-                                    {{ shelf.placement_count }}商品配置済み
+                                <span class="badge {% if shelf.annotated_placement_count > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ shelf.annotated_placement_count|default:0 }}商品配置済み
                                 </span>
-                                {% if shelf.placement_count > 0 %}
+                                {% if shelf.annotated_placement_count > 0 %}
                                     <small class="text-success">
                                         <i class="bi bi-check-circle"></i> 配置あり
                                     </small>
@@ -208,11 +209,11 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ shelf.width }}×{{ shelf.depth }}cm</td>
-                                <td>{{ shelf.segment_count }}段</td>
+                                <td>{{ shelf.annotated_segment_count|default:shelf.segment_count }}段</td>
                                 <td>{{ shelf.location|default:"-" }}</td>
                                 <td>
-                                    {% if shelf.placement_count > 0 %}
-                                        <span class="badge bg-success">{{ shelf.placement_count }}商品</span>
+                                    {% if shelf.annotated_placement_count > 0 %}
+                                        <span class="badge bg-success">{{ shelf.annotated_placement_count }}商品</span>
                                     {% else %}
                                         <span class="badge bg-secondary">配置なし</span>
                                     {% endif %}

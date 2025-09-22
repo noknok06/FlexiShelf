@@ -32,8 +32,8 @@ class ShelfListView(ListView):
             'segments',
             'placements'
         ).annotate(
-            segment_count=Count('segments', filter=Q(segments__is_active=True)),
-            placement_count=Count('placements', filter=Q(placements__is_active=True))
+            annotated_segment_count=Count('segments', filter=Q(segments__is_active=True)),
+            annotated_placement_count=Count('placements', filter=Q(placements__is_active=True))
         ).order_by('name')
         
         # 検索フィルタリング
