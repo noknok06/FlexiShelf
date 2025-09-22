@@ -96,12 +96,33 @@ class ShelfSegment(BaseModel):
             # 下の段までの累積高さを計算
             lower_segments = ShelfSegment.objects.filter(
                 shelf=self.shelf,
-                level__lt=self.level
+                level__lt=self.level,
+                is_active=True
             ).order_by('level')
             self.y_position = sum(seg.height for seg in lower_segments)
         
         super().save(*args, **kwargs)
+        
+        # 上位の段のy_positionも更新
+        self._update_upper_segments()
 
+    def _update_upper_segments(self):
+        """上位段のy_positionを更新"""
+        upper_segments = ShelfSegment.objects.filter(
+            shelf=self.shelf,
+            level__gt=self.level,
+            is_active=True
+        ).order_by('level')
+        
+        for segment in upper_segments:
+            lower_segments = ShelfSegment.objects.filter(
+                shelf=self.shelf,
+                level__lt=segment.level,
+                is_active=True
+            ).order_by('level')
+            segment.y_position = sum(seg.height for seg in lower_segments)
+            ShelfSegment.objects.filter(id=segment.id).update(y_position=segment.y_position)
+                    
     @property
     def available_width(self):
         """利用可能幅"""

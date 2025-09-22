@@ -7,8 +7,9 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.urls import reverse_lazy
-from django.db.models import Q, Count, Sum, Avg, Prefetch
+from django.db.models import Q, Count, Sum, Avg, Max
 from django.http import JsonResponse
+from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -17,6 +18,8 @@ from .models import Shelf, ShelfSegment, ProductPlacement
 from .forms import ShelfForm, ShelfSegmentFormSet, ProductPlacementForm
 from apps.products.models import Product
 
+
+@method_decorator(login_required, name='dispatch')
 class ShelfListView(ListView):
     """棚一覧ビュー"""
     model = Shelf
@@ -27,7 +30,7 @@ class ShelfListView(ListView):
     def get_queryset(self):
         queryset = Shelf.objects.filter(is_active=True).prefetch_related(
             'segments',
-            Prefetch('placements', queryset=ProductPlacement.objects.filter(is_active=True))
+            'placements'
         ).annotate(
             segment_count=Count('segments', filter=Q(segments__is_active=True)),
             placement_count=Count('placements', filter=Q(placements__is_active=True))
@@ -65,15 +68,7 @@ class ShelfDetailView(DetailView):
 
     def get_queryset(self):
         return Shelf.objects.filter(is_active=True).prefetch_related(
-            Prefetch(
-                'segments',
-                queryset=ShelfSegment.objects.filter(is_active=True).prefetch_related(
-                    Prefetch(
-                        'placements',
-                        queryset=ProductPlacement.objects.filter(is_active=True).select_related('product__manufacturer')
-                    )
-                ).order_by('level')
-            )
+            'segments__placements__product__manufacturer'
         )
 
     def get_context_data(self, **kwargs):
@@ -82,8 +77,8 @@ class ShelfDetailView(DetailView):
         
         # 段ごとの配置情報を整理
         segments_data = []
-        for segment in shelf.segments.all():
-            placements = list(segment.placements.all())
+        for segment in shelf.segments.filter(is_active=True).order_by('level'):
+            placements = list(segment.placements.filter(is_active=True).order_by('x_position'))
             segments_data.append({
                 'segment': segment,
                 'placements': placements,
@@ -221,31 +216,6 @@ class ShelfUpdateView(UpdateView):
                 return self.form_invalid(form)
 
 
-
-@login_required
-def shelf_delete(request, pk):
-    """棚削除（ソフトデリート）"""
-    shelf = get_object_or_404(Shelf, pk=pk, is_active=True)
-    
-    if request.method == 'POST':
-        # 配置チェック
-        if shelf.placements.filter(is_active=True).exists():
-            messages.error(request, '商品が配置されている棚は削除できません。先に配置を削除してください。')
-            return redirect('shelves:detail', pk=pk)
-        
-        shelf.is_active = False
-        shelf.updated_by = request.user
-        shelf.save()
-        
-        # 関連する段も無効化
-        shelf.segments.update(is_active=False)
-        
-        messages.success(request, f'棚「{shelf.name}」を削除しました。')
-        return redirect('shelves:list')
-    
-    return render(request, 'shelves/delete_confirm.html', {'shelf': shelf})
-
-
 @method_decorator(login_required, name='dispatch')
 class ShelfEditView(DetailView):
     """棚割り編集ビュー"""
@@ -296,6 +266,30 @@ class ShelfEditView(DetailView):
         context['segments_json'] = segments_data
         
         return context
+
+
+@login_required
+def shelf_delete(request, pk):
+    """棚削除（ソフトデリート）"""
+    shelf = get_object_or_404(Shelf, pk=pk, is_active=True)
+    
+    if request.method == 'POST':
+        # 配置チェック
+        if shelf.placements.filter(is_active=True).exists():
+            messages.error(request, '商品が配置されている棚は削除できません。先に配置を削除してください。')
+            return redirect('shelves:detail', pk=pk)
+        
+        shelf.is_active = False
+        shelf.updated_by = request.user
+        shelf.save()
+        
+        # 関連する段も無効化
+        shelf.segments.update(is_active=False)
+        
+        messages.success(request, f'棚「{shelf.name}」を削除しました。')
+        return redirect('shelves:list')
+    
+    return render(request, 'shelves/delete_confirm.html', {'shelf': shelf})
 
 
 # API ビュー
@@ -420,12 +414,11 @@ def placement_delete_api(request, placement_id):
             'errors': [str(e)]
         }, status=500)
 
+
 @login_required
+@require_http_methods(["POST"])
 def segment_height_update_api(request, segment_id):
     """段高さ更新API"""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'errors': ['POSTメソッドが必要です']}, status=405)
-    
     try:
         segment = get_object_or_404(ShelfSegment, id=segment_id, is_active=True)
         new_height = float(request.POST.get('height', 0))
@@ -473,6 +466,7 @@ def segment_height_update_api(request, segment_id):
 
 
 @login_required
+@require_http_methods(["GET"])
 def placement_validation_api(request):
     """配置バリデーションAPI"""
     try:

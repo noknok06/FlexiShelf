@@ -14,9 +14,9 @@
             <p>リアルなスーパー棚陳列を再現する柔軟な棚割りシステムです。</p>
             <hr class="my-4" style="border-color: rgba(255,255,255,0.3);">
             <div class="d-flex gap-3">
-                <button class="btn btn-light btn-lg" disabled>
-                    <i class="bi bi-grid"></i> 棚管理（準備中）
-                </button>
+                <a href="{% url 'shelves:list' %}" class="btn btn-light btn-lg">
+                    <i class="bi bi-grid"></i> 棚管理
+                </a>
                 <a href="{% url 'products:list' %}" class="btn btn-outline-light btn-lg">
                     <i class="bi bi-box"></i> 商品管理
                 </a>

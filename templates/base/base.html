@@ -27,10 +27,12 @@
             
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <span class="nav-link disabled">
-                            <i class="bi bi-grid"></i> 棚管理（準備中）
-                        </span>
+                        <a class="nav-link {% if request.resolver_match.app_name == 'shelves' %}active{% endif %}" 
+                           href="{% url 'shelves:list' %}">
+                            <i class="bi bi-grid"></i> 棚管理
+                        </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.app_name == 'products' %}active{% endif %}" 

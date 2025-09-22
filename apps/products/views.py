@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.urls import reverse_lazy
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Sum, Avg, Max
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 
